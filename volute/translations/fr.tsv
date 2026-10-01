@@ -1,0 +1,501 @@
+key	translation	context
+language_name	Français	Display name for this language in the menu
+
+# Main window
+window_title	VOLUTE	Application window title
+folder_selection	Sélection de dossier	Panel title for folder selection
+select_folder	Sélectionner un dossier d'images	Button text
+no_folder_selected	Aucun dossier sélectionné	Label when no folder is selected
+
+# Status
+status_loading_images	Chargement des images : {0}
+status_initializing_sam2	Initialisation de SAM2…
+sam2_init_failed	SAM2 n'a pas pu être initialisé pour le dossier {0}.	Error message
+
+# Navigation
+navigation	Navigation	Panel title for navigation controls
+previous	◀ Précédent	Button text for previous image
+next	Suivant ▶	Button text for next image
+
+# Points configuration
+points_config	Configuration des points	Panel title for points setup
+add_points	Ajouter des points	Radio button text
+add_points_tooltip	Clic gauche : point positif | Clic droit ou Ctrl+clic : point négatif	Tooltip for add points radio button
+remove_points_tooltip	Cliquer-glisser pour sélectionner une zone | Tous les points du rectangle seront supprimés	Tooltip for remove points radio button
+define_box	Définir une boîte	Radio button text
+define_box_tooltip	Cliquer-glisser pour définir une boîte englobante | Une boîte par objet et par image, combinée aux points de cette image	Tooltip for define box radio button
+remove_box_btn	Supprimer la boîte	Button text
+box_points_outside_title	Points en contradiction avec la boîte	Dialog title
+box_points_outside_msg	{0} point(s) positif(s) et {1} point(s) négatif(s) de cet objet sur cette image sont hors de la boîte qui vient d'être tracée. SAM2 reçoit la boîte et les points ensemble : ces points contredisent la boîte, ils ne sont pas ignorés.	Dialog message
+box_points_outside_delete_hint	Supprimer les points à l'extérieur de la boîte ?	Dialog question
+point_outside_box_confirm	Ce point est hors de la boîte définie pour cet objet sur cette image. SAM2 reçoit la boîte et les points ensemble : ce point contredira la boîte, il ne sera pas ignoré. L'ajouter quand même ?	Confirmation dialog
+box_delete_imported_mask	Supprimer immédiatement le masque existant	Checkbox label
+strict_box_clipping	Masques strictement confinés à la boîte :	Label for strict clipping checkbox
+strict_box_clipping_tooltip	Efface tout pixel prédit hors de la boîte. Ne s'applique qu'aux prédictions et propagations suivantes : un masque déjà rogné ne peut pas être restauré en désactivant l'option.	Tooltip for strict clipping checkbox
+box_clipping_mode	Rognage appliqué :	Label for clipping mode combo
+box_clipping_mode_box_frames	Aux images avec boîte	Clipping mode option
+box_clipping_mode_reference	À toutes les images (boîte de référence)	Clipping mode option
+box_clipping_reference_warning	La boîte de référence est celle définie sur la première image de l'objet. L'appliquer à toutes les images n'a de sens que pour un objet immobile : dès qu'il se déplace, la boîte le tronquera.	Warning message
+box_mask_import_conflict	Le masque de cet objet sur cette image provient d'un masque importé. Une boîte et un masque importé sont des conditionnements concurrents : la prochaine prédiction remplacera le masque importé. Définir la boîte quand même ?	Confirmation dialog
+box_mask_import_conflict_batch	{0} des masques sur le point d'être importés visent un objet et une image possédant déjà une boîte. Une boîte et un masque importé sont des conditionnements concurrents : la prochaine prédiction remplacera le masque importé sur ces images. Importer quand même ?	Confirmation dialog
+show_points_global	Afficher les points (objet actuel) :	Label for global show points checkbox
+remove_points	Supprimer points	Radio button text
+clear_all_points	Effacer tous les points	Button text
+multi_selection_add_points_blocked	L'ajout de points nécessite qu'un seul objet soit sélectionné.	Warning message
+
+# Object management
+object_management	Gestion des objets	Panel title for object management
+object_list	Liste des objets:	Label for object list
+add_object	Ajouter un objet	Button text
+remove_object	Supprimer l'objet	Button text
+current_object_config	Configuration de l'objet actuel	Panel title
+positive_points_color	Couleur points positifs:	Label for color selection
+negative_points_color	Couleur points négatifs:	Label for color selection
+mask_color	Couleur du masque:	Label for color selection
+marker_style	Style des marqueurs:	Label for marker style
+marker_size	Taille des marqueurs:	Label for marker size
+marker_style_circle	Cercle	Marker style name
+marker_style_square	Carré	Marker style name
+marker_style_triangle	Triangle	Marker style name
+marker_style_diamond	Losange	Marker style name
+marker_style_star	Étoile	Marker style name
+marker_style_cross	Croix	Marker style name
+marker_style_plus	Plus	Marker style name
+marker_style_plus_filled	Plus plein	Marker style name
+marker_style_cross_filled	Croix pleine	Marker style name
+mask_opacity	Opacité du masque:	Label for mask opacity
+show_points	Afficher les points:	Label for checkbox
+object_name	Nom de l'objet:	Label for text input
+object	Objet	Default object name prefix
+point	Point	Default point name prefix (SAM2++ point tracking mode)
+point_name	Nom du point :	Label for text input (SAM2++ point tracking mode)
+confirm_remove_objects	Êtes-vous sûr de vouloir supprimer {0} objets ?	Confirmation message with placeholder
+
+# Prediction
+prediction	Prédiction	Panel title for prediction controls
+predict_current	Prédire les masques sur l'image actuelle	Button text
+propagate_masks	Propager les masques sur toute la vidéo	Button text
+
+# Display options
+background_opacity	Opacité de l'arrière-plan:	Label for background opacity slider
+show_labels	Afficher les étiquettes:	Label for show labels checkbox
+centroid_config	Configuration des centres de gravité	Panel title for centroid settings
+show_centroids	Afficher les centres de gravité:	Label for centroid visibility
+centroid_color	Couleur des centres:	Label for centroid color
+centroid_size	Taille des centres:	Label for centroid size
+
+# Export
+export	Exportation	Panel title for export controls
+export_images	Exporter les images avec masques	Button text
+export_coordinates	Exporter les coordonnées des masques	Button text
+export_centroids	Exporter les centres de gravité	Button text
+export_tracked_points	Exporter les points suivis	Button text
+
+# Menu
+language	Langue	Menu title
+file	Fichier	File menu title
+project_data	Données du Projet	Project data submenu title
+sam2_inference_state	État d'Inférence SAM2 (Expérimental)	SAM2 inference state submenu title
+
+# About dialog
+help	Aide	Menu title
+about_title	À propos	Dialog title
+about_subtitle	Video Object Labeling, User-guided Tracking and Extraction	Acronym expansion, shown in the About dialog
+model_dialog_title	Choix du modèle	Dialog title
+model_dialog_prompt	Choisir le modèle à utiliser :	Dialog prompt
+model_dialog_launch	Ouvrir	Button text
+model_set_default	Définir par défaut	Checkbox label
+model_set_default_tooltip	Enregistre ce modèle comme celui présélectionné ici, et utilisé directement lorsque cette liste n'est pas affichée.	Checkbox tooltip
+model_show_at_startup	Afficher cette liste au démarrage	Checkbox label
+model_show_at_startup_tooltip	Si décochée, l'application démarre directement avec le modèle par défaut. Ce choix peut être modifié dans les réglages de l'application.	Checkbox tooltip
+debug_mode_label	Mode déboggage	Checkbox label
+debug_mode_tooltip	Affiche dans la console des informations techniques détaillées sur le fonctionnement de l'application, ou les enregistre dans le fichier .log en cas de lancement depuis un bundle applicatif.	Checkbox tooltip
+model_desc_sam2_default	Meilleure précision	Model description
+model_desc_sam2_small	Traitement plus rapide	Model description
+model_desc_medsam2_general	Imagerie médicale générale	Model description
+model_desc_medsam2_ct	Lésions en tomodensitométrie	Model description
+model_desc_medsam2_heart	Échographie cardiaque	Model description
+model_desc_medsam2_liver	Lésions hépatiques en IRM	Model description
+model_desc_sam2plus_mask	Remplacement direct de SAM2	Model description
+model_desc_sam2plus_point	Trajectoires de points	Model description
+settings_menu	Paramètres…	Menu item text
+settings_title	Paramètres	Dialog title
+settings_tab_interface	Interface	Settings tab
+settings_tab_export	Exportation	Settings tab
+settings_tab_tools	Performances et outils	Settings tab
+settings_tab_debug	Débogage	Settings tab
+settings_language	Langue de l'interface :	Settings label
+settings_show_model_dialog	Afficher la liste des modèles au démarrage :	Settings label
+settings_show_image_filename	Afficher le nom du fichier image :	Settings label
+settings_default_model	Modèle par défaut :	Settings label
+settings_native_dialogs	Sélecteurs de fichiers du système :	Settings label
+settings_import_confirmation	Réponse par défaut aux dialogues d'import :	Settings label
+settings_progress_font	Taille de police des détails de progression :	Settings label
+settings_animation_pacing	Rythme de l'animation de progression :	Settings label
+settings_coordinates_format	Format des coordonnées de masques :	Settings label
+settings_centroids_format	Format des centres de gravité :	Settings label
+settings_image_quality	Qualité JPEG des images exportées :	Settings label
+settings_cache_size	Images gardées en mémoire (0 = illimité) :	Settings label
+settings_gimp_path	Exécutable GIMP :	Settings label
+settings_debug_enabled	Sortie de débogage détaillée :	Settings label
+settings_debug_filenames	Détailler la correspondance des noms de fichiers :	Settings label
+settings_debug_mask_sync	Détailler la synchronisation des masques :	Settings label
+settings_browse	Parcourir…	Button text
+settings_save	Enregistrer	Button text
+settings_restore_defaults	Restaurer les valeurs par défaut	Button text
+settings_restore_confirm	Restaurer tous les paramètres à leur valeur par défaut ? Rien n'est écrit tant que vous n'enregistrez pas.	Confirmation message
+settings_restart_note	La plupart des paramètres prennent effet au prochain démarrage de l'application.	Informative note
+settings_saved	Paramètres enregistrés.	Success message
+settings_save_failed	Le fichier de configuration n'a pas pu être écrit.	Error message
+about_version	Version {0}	Version line in the About dialog
+about_credits_title	Crédits	Section heading
+about_credits_body	Développée par <a href='https://lpp.cnrs.fr/nicolas-audibert/'><b>Nicolas Audibert</b></a> avec l'assistance de <a href='https://claude.ai'>Claude</a> (Anthropic) comme assistant IA.	Credits text
+about_logo_credit	Le logo a été créé par Solène Bodiou.	Credits text, shown after about_credits_body
+about_repository_title	Dépôt	Section heading
+about_repository_body	Code source, versions et suivi des anomalies : <a href='https://github.com/nicolasaudibert/VOLUTE'>github.com/nicolasaudibert/VOLUTE</a>.	Repository link in the About dialog
+about_license_title	Licence	Section heading
+about_license_body	Ce logiciel est distribué sous licence <a href='https://www.gnu.org/licenses/gpl-3.0.html'>GNU General Public License v3.0</a>.	License text
+about_sam2_title	SAM2	Section heading
+about_sam2_body	Cette application repose sur <a href='https://github.com/facebookresearch/segment-anything-2'>SAM 2</a> de Meta AI Research. Merci de citer la référence suivante dans vos travaux académiques :	SAM2 description
+about_medsam2_title	MedSAM2 (backend optionnel)	Section heading
+about_medsam2_body	Si vous utilisez le backend MedSAM2, merci de citer également :	MedSAM2 description
+about_sam2plus_title	SAM2++ (backend optionnel)	Section heading
+about_sam2plus_body	Si vous utilisez le backend SAM2++, merci de citer également :	SAM2++ description
+
+# Messages
+warning	Attention	Dialog title
+error	Erreur	Dialog title
+success	Succès	Dialog title
+confirmation	Confirmation	Dialog title
+no_images_found	Aucune image trouvée dans le dossier.	Error message
+no_image_loaded	Aucune image chargée.	Warning message
+define_points_first	Veuillez définir au moins un point ou une boîte pour au moins un objet sur cette image.	Warning message
+no_inference_state	État d'inférence non initialisé. Veuillez d'abord prédire un masque.	Warning message
+no_masks_to_export	Aucun masque à exporter.	Warning message
+no_centroids_to_export	Aucun centre de gravité à exporter.	Warning message
+no_tracked_points_to_export	Aucun point suivi à exporter.	Warning message
+prediction_in_progress	Prédiction des masques en cours...	Progress dialog text
+initializing_inference_state	Initialisation de l'état d'inférence…	Progress dialog text
+predicting_object	Prédiction pour {0}…	Progress dialog text
+forward_propagation	Propagation avant : {0}	Progress dialog text
+backward_propagation	Propagation arrière : {0}	Progress dialog text
+repropagation_forward	Re-propagation (avant) : {0}	Progress dialog text
+repropagation_backward	Re-propagation (arrière) : {0}	Progress dialog text
+propagation_interrupted	Propagation interrompue	Dialog title
+prediction_error	Erreur pendant la prédiction : {0}	Error message
+propagation_error	Erreur pendant la propagation : {0}	Error message
+propagation_in_progress	Propagation des masques en cours...	Progress dialog text
+cancel	Annuler	Button text
+yes	Oui	Button text
+no	Non	Button text
+cannot_remove_all_objects	Vous devez conserver au moins un objet.	Warning message
+cannot_remove_all_points	Vous devez conserver au moins un point.	Warning message
+confirm_remove_object	Êtes-vous sûr de vouloir supprimer l'objet {0} ?	Confirmation message with placeholder
+prediction_successful	Prédiction réussie pour {0} objet(s) sur l'image {1}.	Success message with placeholders
+no_masks_generated	Aucun masque n'a pu être généré.	Warning message
+propagation_successful	Propagation bidirectionnelle réussie: {0} masques générés pour {1} objets.	Success message with placeholders
+images_exported	{0} images exportées avec succès dans {1}	Success message with placeholders
+coordinates_exported	Coordonnées des masques exportées avec succès: {0} masques.	Success message with placeholder
+centroids_exported	Centres de gravité exportés avec succès ({0} centres).	Success message with placeholder
+tracked_points_exported	Points suivis exportés avec succès ({0} points).	Success message with placeholder
+pandas_required	Les bibliothèques pandas et openpyxl sont nécessaires pour l'export Excel. Veuillez les installer avec: pip install pandas openpyxl	Error message
+prediction_cancelled	Prédiction annulée par l'utilisateur.	Info message
+propagation_cancelled	Propagation interrompue après {0} opérations.	Info message with placeholder
+folder	Dossier	Generic label
+image	Image	Generic label
+
+# File dialog filters
+filter_volute	Données de projet VOLUTE	File dialog filter
+filter_voluteinf	Fichiers d'état d'inférence SAM2	File dialog filter
+filter_xlsx	Fichiers Excel	File dialog filter
+filter_csv	Fichiers CSV	File dialog filter
+filter_json	Fichiers JSON	File dialog filter
+filter_pkl	Fichiers Pickle	File dialog filter
+filter_tsv	Fichiers TSV	File dialog filter
+filter_txt	Fichiers texte	File dialog filter
+filter_yaml	Fichiers YAML	File dialog filter
+filter_xcf	Fichiers GIMP	File dialog filter
+filter_image	Fichiers image	File dialog filter
+filter_mask	Fichiers de masque	File dialog filter
+filter_all	Tous les fichiers	File dialog filter
+
+# Project data management
+export_project_data	Exporter les données du projet	Menu item text
+import_project_data	Importer les données du projet	Menu item text
+project_data_exported	Données du projet exportées avec succès vers {0} ({1} Ko).	Success message with placeholders
+project_export_no_dimensions	Aucune image chargée. Impossible de déterminer les dimensions.	Error message
+project_include_imported_masks_title	Masques importés	Dialog title
+project_include_imported_masks_msg	Ce projet contient {0} masque(s) issu(s) d'un import. Contrairement aux masques prédits, ils ne peuvent pas être recalculés à partir des points et boîtes enregistrés.\n\nLes inclure dans le fichier projet (plus volumineux, autonome), ou les laisser de côté et les réimporter après chargement ?	Confirmation message
+project_export_error	Erreur lors de l'export des données de projet : {0}	Error message
+project_import_error	Erreur lors de l'import des données de projet : {0}	Error message
+project_import_failed	Échec de l'import des données de projet.	Error message
+project_version_mismatch	Ce fichier provient peut-être d'une autre version. L'import risque de ne pas fonctionner correctement.	Warning message
+project_minimal_export	Ce fichier ne contient que des données minimales : {0}	Warning message
+file_not_found	Fichier introuvable : {0}	Error message
+project_data_imported	Données du projet importées avec succès depuis {0}	Success message with placeholder
+no_project_data	Aucune donnée de projet à exporter. Veuillez d'abord créer des objets et prédire des masques.	Warning message
+dimension_mismatch	Dimensions d'image incompatibles !\n\nImages actuelles : {0}x{1}\nÉtat enregistré : {2}x{3}\n\nCela peut décaler les masques. Continuer quand même ?	Confirmation message
+import_project_warning	Ceci va écraser les données d'objets et points actuels. Continuer ?	Confirmation message
+partial_import	Données d'objets importées avec succès, mais l'état d'inférence SAM2 n'a pas pu être restauré.	Warning message
+
+# SAM2 inference state management
+export_sam2_state	Exporter l'état d'inférence SAM2	Menu item text
+import_sam2_state	Importer l'état d'inférence SAM2	Menu item text
+import_sam2_state_warning	Ceci va écraser l'état d'inférence SAM2 actuel. Continuer ?	Confirmation message
+sam2_config_title	Configuration SAM2	Dialog title
+sam2_config_question	Voulez-vous sélectionner les fichiers de configuration et de checkpoint pour SAM2 ?	Confirmation message
+sam2_config_defaults	Sinon, les chemins par défaut sont utilisés :\nConfiguration : {0}\nCheckpoint : {1}	Dialog informative text
+sam2_config_select_checkpoint	Sélectionner le fichier checkpoint SAM2	File dialog title
+sam2_config_select_config	Sélectionner le fichier de configuration SAM2	File dialog title
+filter_pt	Checkpoint PyTorch	File dialog filter
+sam2_state_exported	État d'inférence SAM2 exporté avec succès vers {0}	Success message with placeholder
+sam2_state_imported	État d'inférence SAM2 importé avec succès depuis {0}	Success message with placeholder
+no_sam2_state	Aucun état d'inférence SAM2 à exporter. Veuillez d'abord prédire des masques.	Warning message
+sam2_device_mismatch	Incompatibilité de périphérique détectée ! Cela peut faire échouer l'importation.	Warning message
+sam2_experimental_warning	L'export/import de l'état d'inférence SAM2 est expérimental et peut ne pas fonctionner sur différents systèmes.	Warning message
+sam2_export_successful	Export SAM2 Réussi	Dialog title
+sam2_import_successful	Import SAM2 Réussi	Dialog title
+sam2_export_failed	Échec de l'Export SAM2	Dialog title
+sam2_import_failed	Échec de l'Import SAM2	Dialog title
+device_mismatch	Incompatibilité de Périphérique	Dialog title
+invalid_file	Fichier Invalide	Dialog title
+file_not_found	Fichier Non Trouvé	Dialog title
+
+# Export operations
+select_export_folder	Sélectionner le dossier d'exportation	Dialog title for export folder selection
+export_complete	Exportation Terminée	Dialog title for successful export
+export_failed	Échec de l'Exportation	Dialog title for failed export
+export_error	Erreur d'Exportation	Dialog title for export error
+masked_images_exported	Images masquées exportées avec succès	Success message for image export
+coordinates_exported_success	Coordonnées exportées avec succès	Success message for coordinates export
+centroids_exported_success	Centroïdes exportés avec succès	Success message for centroids export
+
+# Progress dialogs
+exporting_sam2_state	Exportation de l'état d'inférence SAM2...	Progress dialog text
+importing_sam2_state	Importation de l'état d'inférence SAM2...	Progress dialog text
+serializing_data	Sérialisation des données SAM2...	Progress dialog text
+deserializing_data	Désérialisation des données SAM2...	Progress dialog text
+processing_masks	Traitement des masques...	Progress dialog text
+validating_state	Validation de l'état d'inférence...	Progress dialog text
+saving_file	Sauvegarde du fichier...	Progress dialog text
+loading_file	Chargement du fichier...	Progress dialog text
+preparing_import	Préparation de l'importation...	Progress dialog text
+finalizing_import	Finalisation de l'importation...	Progress dialog text
+progress_complete	Opération terminée avec succès	Progress dialog completion text
+progress_cancelled	Opération annulée par l'utilisateur	Progress dialog cancellation text
+
+# Batch processing
+batch_processing	Traitement par lot	Batch dialog window title
+batch_items	Éléments du lot	Group box title
+batch_options	Options de traitement	Group box title
+batch_col_sam2	Fichier .volute	Table column header
+batch_col_folder	Dossier d'images	Table column header
+batch_col_ref_frame	Image de référence	Table column header
+batch_add_row	Ajouter une ligne	Button text
+batch_remove_row	Supprimer la ligne	Button text
+batch_browse_sam2	Parcourir .volute…	Button text
+batch_browse_folder	Parcourir le dossier…	Button text
+batch_import_tsv	Importer TSV…	Button text
+batch_export_tsv	Exporter TSV…	Button text
+batch_browse	Parcourir…	Button text for output folder
+batch_run	Lancer le lot	Button text
+batch_close	Fermer	Button text
+batch_output_folder	Dossier de sortie :	Label for output folder field
+batch_output_placeholder	Sélectionner un dossier de sortie…	Placeholder text for output folder field
+batch_ready	Prêt.	Initial status label text
+batch_opt_propagate	Propager les masques	Checkbox label
+batch_opt_export_images	Exporter les images masquées	Checkbox label
+batch_opt_state_predict	Exporter l'état d'inférence (prédiction)	Checkbox label
+batch_opt_state_prop	Exporter l'état d'inférence (propagation)	Checkbox label
+batch_no_selection	Aucune sélection	Dialog title
+batch_no_selection_msg	Sélectionnez d'abord une ligne.	Dialog message
+batch_import_error	Erreur d'importation	Dialog title
+batch_export_error	Erreur d'exportation	Dialog title
+batch_no_items	Aucun élément	Dialog title
+batch_no_items_msg	Ajoutez au moins une paire .volute / dossier.	Dialog message
+batch_no_output	Aucun dossier de sortie	Dialog title
+batch_no_output_msg	Sélectionnez un dossier de sortie.	Dialog message
+batch_invalid_paths	Chemins invalides	Dialog title
+batch_select_sam2	Sélectionner un fichier .volute	File dialog title
+batch_import_tsv_title	Importer TSV	File dialog title
+batch_export_tsv_title	Exporter TSV	File dialog title
+batch_imported_rows	Importé {0} ligne(s) depuis {1}.	Log message with placeholders
+batch_exported_rows	Exporté {0} ligne(s) vers {1}.	Log message with placeholders
+batch_starting	Démarrage du lot : {0} élément(s)	Log message with placeholder
+batch_cancel_requested	Annulation demandée…	Log message
+batch_status_ok	OK	Item result status
+batch_status_errors	ERREURS	Item result status
+batch_complete	Lot terminé : {0}/{1} réussi(s).	Log message with placeholders
+batch_col_tracked_points_file	Fichier de points suivis	Table column header
+batch_browse_tracked_points	Parcourir points suivis…	Button text
+
+# Reference points
+ref_points	Points de référence	Panel title
+ref_point_name	Nom du point :	Label
+add_ref_point_btn	Ajouter	Button
+rename_ref_point_btn	Renommer	Button
+remove_ref_point_btn	Supprimer (toutes les trames)	Button
+remove_ref_point_frame_btn	Supprimer (cette trame)	Button
+no_ref_point_selected	Aucun point de référence sélectionné.	Warning
+ref_point_name_empty	Veuillez saisir un nom de point.	Warning
+ref_point_name_exists	Un point portant ce nom existe déjà.	Warning
+current_ref_point_config	Configuration du point de référence actuel	Panel title
+ref_point_color	Couleur du point de référence :	Label for color selection
+confirm_remove_ref_points	Êtes-vous sûr de vouloir supprimer {0} points de référence ?	Confirmation message with placeholder
+confirm_remove_ref_points_frame	Êtes-vous sûr de vouloir supprimer la position sur la trame courante de {0} points de référence ?	Confirmation message with placeholder
+export_closest_points	Exporter les points de masque les plus proches…	Menu/button text
+closest_points_exported	Points de masque les plus proches exportés ({0} lignes).	Success
+no_masks_for_closest	Aucun masque disponible pour l'export des points les plus proches.	Warning
+ref_point_extrapolation_warning	Les points de référence suivants nécessitent une extrapolation sur certaines trames :\n{0}\n\nContinuer quand même ?	Warning dialog
+batch_tab_items	Éléments et options	Tab label
+batch_tab_ref_points	Points de référence	Tab label
+batch_all_pairs	Toutes les combinaisons	Radio label
+batch_selected_pairs	Paires sélectionnées	Radio label
+batch_col_object	Objet	Table column header
+batch_col_ref_point	Point de référence	Table column header
+batch_opt_closest_points	Exporter les points de masque les plus proches	Checkbox label
+batch_ref_pairs_tsv_import	Importer les paires TSV…	Button
+batch_ref_pairs_tsv_export	Exporter les paires TSV…	Button
+include_object_distances	Inclure les distances inter-objets	Checkbox label
+ref_point	Point réf.	Default name prefix for reference points
+objects	objets	Generic plural label used in import dialog messages
+import_names_btn	Importer depuis fichier…	Button: import names from .txt
+import_names_overwrite_msg	Des {0} existants ont été trouvés.\n\nÉcraser toutes les entrées existantes (Oui) ou compléter avec les noms importés (Non) ?	Dialog message (placeholder = entity type)
+import_names_duplicates_title	Noms en doublon	Dialog title
+import_names_duplicates_msg	Les noms suivants existent déjà :\n{0}\n\nRenommer les doublons avec un suffixe (Oui) ou les ignorer (Non) ?	Dialog message (placeholder = duplicate names)
+import_cross_names_title	Conflit de noms	Warning title
+import_cross_names_msg	Les noms suivants existent à la fois dans les objets et les points de référence :\n{0}\n\nObjets et points de référence sont gérés séparément, mais des noms identiques peuvent être perturbants. Il est conseillé de renommer l'un d'eux.	Warning message (placeholder = conflicting names)
+batch_col_target_type	Type de cible	Table column header
+target_type_ref	Point de réf.	Combo item
+target_type_obj	Objet	Combo item
+ref_advanced_mode	Mode avancé (positions par trame)	Checkbox label
+ref_advanced_mode_blocked	Impossible de désactiver le mode avancé : les points suivants ont des positions définies sur plusieurs trames :\n{0}\n\nSupprimez d'abord leurs positions supplémentaires.	Warning dialog
+ref_point_reposition_confirm	Ce clic va modifier la position interpolée de ce point sur cette trame. Continuer ?	Confirmation dialog
+dont_ask_again	Ne plus demander	Checkbox label
+ref_point_prev_frame_btn	◀ Trame précédente	Button text
+ref_point_next_frame_btn	Trame suivante ▶	Button text
+ref_point_defined_frame_prev_btn	◀ Trame définie	Button text (simple mode)
+ref_point_defined_frame_next_btn	Trame définie ▶	Button text (simple mode)
+ref_point_extrapolation_label	Extrapolation :	Label
+ref_point_extrapolation_extrapolate	Extrapoler	Combo item
+ref_point_extrapolation_undefined	Indéfini	Combo item
+ref_point_extrapolation_clamp	Valeur aux bornes	Combo item
+ref_point_interpolation_label	Interpolation :	Label
+ref_point_interpolation_cubic	Cubique	Combo item
+ref_point_interpolation_linear	Linéaire	Combo item
+
+# Imported points
+imported_points_config	Points importés	Panel title for imported point display settings
+show_imported_points	Afficher les points importés :	Label for global visibility checkbox
+remove_imported_point_btn	Supprimer	Button text
+current_imported_point_config	Configuration du point importé actuel	Panel title
+imported_point_color	Couleur du point importé :	Label for color selection
+no_imported_point_selected	Aucun point importé sélectionné.	Warning message
+confirm_remove_imported_point	Êtes-vous sûr de vouloir supprimer le point importé {0} ?	Confirmation message with placeholder
+import_tracked_points	Importer les points suivis…	Menu item text
+imported_points_count_mismatch	Le fichier importé référence {0} trame(s), mais le dossier courant contient {1} image(s).\n\nContinuer quand même ?	Confirmation dialog
+imported_points_filenames_unmatched	{0} nom(s) de fichier importé(s) n'ont pas pu être associés au dossier d'images courant et seront ignorés :\n{1}	Warning message
+imported_points_no_match	Aucun des noms de fichiers importés ne correspond au dossier d'images courant. Importation annulée.	Error message
+imported_points_out_of_bounds_warning	Certains points importés se situent hors des dimensions de l'image courante pour les noms suivants, ce qui peut indiquer une incompatibilité avec la session source :\n{0}	Warning message
+imported_points_imported	{0} point(s) importé(s) avec succès.	Success message with placeholder
+batch_col_imported_point	Point importé	Table column header
+batch_tab_imported_points	Points Importés	Tab label
+batch_opt_export_point_mask_analysis	Exporter l'analyse point/masque	Checkbox label
+export_point_mask_analysis	Exporter l'analyse point/masque…	Menu item text
+point_mask_analysis_exported	Analyse point/masque exportée ({0} lignes).	Success message with placeholder
+no_imported_points_for_analysis	Aucun point importé ou aucun masque disponible pour l'analyse point/masque.	Warning message
+
+# Tabs
+tab_objects_definition	Objets	Tab label
+tab_points_definition	Points	Tab label (SAM2++ point tracking mode)
+tab_ref_points	Points Réf.	Tab label
+tab_prediction	Prédiction	Tab label
+tab_masks	Masques	Tab label
+
+# Point tracking (SAM2++)
+point_management	Gestion des points	Panel title (SAM2++ point tracking mode)
+points_list	Liste des points :	Label for points list (SAM2++ point tracking mode)
+add_point_btn	Ajouter un point	Button text (SAM2++ point tracking mode)
+remove_point_btn	Supprimer le point	Button text (SAM2++ point tracking mode)
+current_point_config	Configuration du point courant	Panel title (SAM2++ point tracking mode)
+show_current_point	Afficher le point courant :	Label for show current point checkbox
+point_color	Couleur du point :	Label for seed point color (SAM2++ point tracking mode)
+tracked_point_color	Couleur du point suivi :	Label for tracked point color (SAM2++ point tracking mode)
+tracked_point_display_config	Affichage des points suivis	Panel title for tracked point display settings
+tracked_point_size_label	Taille des points suivis :	Label for tracked point size slider
+tracked_point_style_label	Style des points suivis :	Label for tracked point style combo
+clear_point	Effacer le point	Button text (SAM2++ point tracking mode)
+predict_points	Prédire les points sur la trame courante	Button text (SAM2++ point tracking mode)
+propagate_points	Propager les points dans la vidéo	Button text (SAM2++ point tracking mode)
+export_images_with_tracked_points	Exporter les images avec les points suivis	Menu item (SAM2++ point tracking mode)
+export_closest_tracked_points	Exporter les distances aux points de référence…	Menu item (SAM2++ point tracking mode)
+closest_tracked_points_exported	Distances des points suivis exportées ({0} lignes).	Success message with placeholder
+mode_mask	Mode masque	Window title suffix (SAM2++ mask mode)
+mode_point_tracking	Mode suivi de points	Window title suffix (SAM2++ point tracking mode)
+clear_points	Effacer les points	Button label when multiple objects/points selected
+edit	Édition	Edit menu
+undo	Annuler	Undo menu item
+redo	Rétablir	Redo menu item
+
+# Convex hull
+show_hulls	Afficher les enveloppes convexes :	Label
+hull_smoothing	Lissage :	Label
+hull_line_width	Épaisseur du trait :	Label
+hull_outline	Afficher le contour extérieur :	Label
+hull_outline_color	Couleur du contour :	Label
+export_hull_coords	Exporter les coordonnées des enveloppes convexes	Menu item
+hull_coords_exported	Coordonnées des enveloppes convexes exportées ({0} lignes).	Success message
+no_hulls_to_export	Aucune enveloppe convexe à exporter.	Warning message
+batch_opt_export_hull	Exporter les coordonnées des enveloppes	Checkbox label
+
+# Outer contour
+mask_contours_config	Contours de masques	Group box title
+tab_outer_contour	Contour extérieur	Tab label
+tab_convex_hull	Enveloppe convexe	Tab label
+show_contours	Afficher les contours extérieurs :	Label
+contour_smoothing	Lissage :	Label
+contour_line_width	Épaisseur du trait :	Label
+contour_outline	Afficher le bord extérieur :	Label
+contour_outline_color	Couleur du bord :	Label
+export_contour_coords	Exporter les coordonnées des contours	Menu item
+contour_coords_exported	Coordonnées des contours exportées ({0} lignes).	Success message
+no_contours_to_export	Aucun contour à exporter.	Warning message
+batch_opt_export_contour	Exporter les coordonnées des contours	Checkbox label
+
+# Mask-based initialization
+import_mask	Importer des masques…	Menu item text
+imported_mask_filenames_unmatched	{0} nom(s) de fichier de masque importé(s) n'ont pas pu être associés au dossier d'images courant et seront ignorés :\n{1}	Warning message
+imported_mask_imported	{0} masque(s) importé(s) avec succès.	Success message with placeholder
+imported_mask_imported_multi_frame	{0} masque(s) importé(s) avec succès sur {1} trame(s).	Success message with placeholders (masks, frames)
+repropagate_from_frame	Re-propager depuis cette trame…	Button text
+repropagate_span_title	Empan de re-propagation	Dialog title
+repropagate_forward_label	Avant (trames) :	Label
+repropagate_backward_label	Arrière (trames) :	Label
+repropagate_unbounded	Illimité	SpinBox special value text (0 = unbounded)
+mask_color_mapping_title	Associer les couleurs aux objets	Dialog title
+mask_color_mapping_hint	Associez chaque couleur détectée à un objet :	Dialog hint label
+mask_color_mapping_new_object	Créer un nouvel objet	Combo item
+no_mask_on_frame_to_repropagate	Aucun masque sur la trame courante pour cet objet.	Warning message
+
+# GIMP export
+gimp_export_frame	Exporter la trame pour édition…	Menu item text
+gimp_export_dialog_title	Exporter la trame pour édition	Dialog title
+gimp_export_dialog_hint	Choisissez comment exporter la trame et les masques d'objets actuels :	Dialog hint label
+gimp_export_mode_xcf	Fichier .xcf unique (assemblé par GIMP)	Radio button text
+gimp_export_mode_files	Fichiers image séparés	Radio button text
+gimp_export_all_mode_xcf	Un fichier .xcf par trame (assemblés par GIMP)	Radio button text (multi-frame export)
+gimp_export_all_mode_files	Fichiers image séparés (un sous-dossier par trame, puis par objet)	Radio button text (multi-frame export)
+gimp_not_detected_tooltip	Exécutable GIMP en ligne de commande introuvable — voir gimp.executable_path dans le fichier de configuration.	Tooltip
+gimp_export_successful	Trame exportée avec succès.	Success message
+gimp_export_in_progress	Export en cours… GIMP peut prendre un moment à démarrer.	Progress dialog text (single-frame GIMP export)
+gimp_import_in_progress	Import en cours… GIMP peut prendre un moment à démarrer.	Progress dialog text (XCF mask import)
+gimp_export_all_frames	Exporter toutes les trames pour édition…	Menu item text
+gimp_export_all_frames_confirm	{0} trame(s) seront exportées. Continuer ?	Confirmation message with placeholder
+gimp_export_all_frames_successful	{0} trame(s) exportées avec succès.	Success message with placeholder
+gimp_export_all_dialog_title	Exporter toutes les trames pour édition	Dialog title (multi-frame export mode choice)
+gimp_export_all_dialog_hint	Choisissez comment exporter les trames et les masques d'objets :	Dialog hint label (multi-frame export mode choice)
+imported_mask_no_xcf_layers	Aucun calque de masque trouvé dans le(s) fichier(s) .xcf sélectionné(s).	Warning message
+gimp_import_replace_default_object	L'objet actuel « {0} » n'a ni points ni masques. Le remplacer par le(s) {1} objet(s) importé(s) plutôt que de les ajouter ?	Confirmation dialog with placeholders (name, count)
+gimp_export_cancelled	Export annulé.	Info message — cancelled with no partial output kept, or single-frame export
+gimp_export_partial_cancelled	Export annulé : {0} trame(s) sur {1} exportées avant l'annulation.	Info message with placeholders — cancelled multi-frame export, partial output kept
+gimp_import_cancelled	Import annulé. Aucun masque n'a été importé.	Info message — cancelled .xcf mask import (all-or-nothing)

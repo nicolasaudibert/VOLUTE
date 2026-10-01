@@ -1,0 +1,61 @@
+# SAM2/MedSAM2 Video Segmentation GUI Configuration
+
+# =============================================================================
+# Model Paths (INFORMATIVE ONLY - NOT LOADED)
+# =============================================================================
+# Model paths are hardcoded in main_window.py for Hydra compatibility
+# This section documents the default values but is NOT used by the application
+# Use launcher options (--model, --config, --checkpoint) to override defaults
+models:
+  sam2:
+    config_path: "configs/sam2.1/sam2.1_hiera_l.yaml"
+    checkpoint_path: "./checkpoints/sam2.1_hiera_large.pt"
+  medsam2:
+    config_path: "configs/medsam2_configs/sam2.1_hiera_t512.yaml"
+    checkpoint_path: "./checkpoints/MedSAM2_latest.pt"
+  sam2plus:
+    config_path: "configs/sam2.1/sam2.1_hiera_b+_predmasks_decoupled_MAME.yaml"
+    checkpoint_path: "./checkpoints/SAM2-Plus/checkpoint_phase123.pt"
+    task: "mask"   # "mask" | "point"
+
+# =============================================================================
+# User Interface Settings (ACTIVE)
+# =============================================================================
+  default_model: "sam2_default"
+ui:
+  default_language: "en"              # Language code: "en", "fr", etc.
+  progress_details_font_size: 12      # Font size for progress dialog details
+  progress_animation_pacing: "file"   # Progress animation, when one is installed:
+                                      # "file": plays at the frame durations of the file
+                                      # "progress": one frame per progress update of
+                                      #   prediction, propagation and SAM2 state
+                                      #   export/import, never faster than the file
+  import_confirmation_default: "yes"  # Default button for import dialogs: "yes" or "no"
+  native_file_dialogs: true           # true: system file dialogs (platform look)
+                                      # false: Qt's own, which follow the UI language
+                                      #        (on macOS the system panel stays in the
+                                      #         system language whatever this app does)
+
+# =============================================================================
+# Export Settings (ACTIVE)
+# =============================================================================
+  show_model_dialog: true
+export:
+  coordinates_format: "json"          # Default format: "json", "csv", "pickle"
+  centroids_format: "excel"           # Default format: "excel", "csv", "json"
+  image_quality: 95                   # JPEG quality for masked images (1-100)
+
+# =============================================================================
+# Debug Options (ACTIVE)
+# =============================================================================
+debug:
+  enabled: false                      # Enable verbose debug output
+  show_filename_mappings: false       # Show detailed filename mapping info
+  show_mask_sync_details: false       # Show mask synchronization details
+
+# =============================================================================
+# Performance Settings (ACTIVE)
+# =============================================================================
+performance:
+  image_cache_size: 32   # max frames kept in the LRU cache during inference
+                         # (0 = unlimited; increase if propagation is slow)
