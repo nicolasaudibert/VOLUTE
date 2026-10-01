@@ -105,14 +105,22 @@ pip install scikit-image
 
 ## GUI Installation
 
-Copy the GUI files into the SAM2-Plus installation:
+The GUI lives in the `tools/` directory of the SAM2-Plus installation, beside the files
+SAM2-Plus already ships there. Clone the repository somewhere else and copy its contents
+in — `git clone` refuses a destination that is not empty, so it cannot clone into `tools/`
+directly:
 
 ```bash
 # From within the SAM2-Plus directory
-cp /path/to/VOLUTE.py tools/
-cp -r /path/to/volute/ tools/
-cp /path/to/volute_config.yaml .   # optional
+git clone https://github.com/nicolasaudibert/VOLUTE.git ../VOLUTE-src
+rsync -a --exclude .git ../VOLUTE-src/ tools/
 ```
+
+Keep the clone: updating later is `git -C ../VOLUTE-src pull` followed by the same `rsync`.
+Delete it with `rm -rf ../VOLUTE-src` if you would rather not.
+
+`rsync` copies the hidden `.gitignore` along with the rest; `cp -R` would too, but it would
+also bring the `.git` directory, which is why the command excludes it.
 
 Verify the installation structure:
 
