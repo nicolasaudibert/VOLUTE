@@ -56,6 +56,16 @@ class GimpExportManager:
     POLL_INTERVAL = 0.2
     TERMINATE_GRACE = 3.0
 
+    # Looked into when neither name is on PATH. A macOS install puts none of
+    # GIMP's executables on PATH, so the bundle has to be searched; the
+    # unversioned names there are symlinks that keep pointing at the right
+    # binary across a GIMP update, unlike the versioned ones beside them.
+    # Where the executables are on PATH, as they are on Linux, this is unused.
+    BUNDLED_CANDIDATES = (
+        '/Applications/GIMP.app/Contents/MacOS/gimp-console',
+        '/Applications/GIMP.app/Contents/MacOS/gimp',
+    )
+
     def __init__(self, main_window, debug_mode=False):
         self.main_window = main_window
         self.debug_mode = debug_mode
@@ -90,31 +100,41 @@ class GimpExportManager:
         Resolve a usable GIMP executable path: an explicit override from
         configuration takes precedence and is NOT silently ignored if
         invalid (an invalid override is reported as "not detected" rather
-        than falling back to a PATH search); otherwise 'gimp-console'
-        then 'gimp' are looked up on PATH ('gimp-console' preferred — no
-        GUI window flash during batch invocation).
+        than falling back to a search); otherwise 'gimp-console' then
+        'gimp' are looked up on PATH, and failing that in
+        BUNDLED_CANDIDATES.
+
+        'gimp-console' is preferred at every step: it carries no GUI, so
+        it opens no window, flashes no Dock icon, and cannot fail for want
+        of a display connection — which the full binary can, even under
+        -i, since it still brings up GTK.
         """
         if self._detected and not force:
             return self._gimp_executable
 
         override = self.main_window.config_manager.get_gimp_path()
         if override:
-            self._gimp_executable = (
-                override if os.path.isfile(override) and os.access(override, os.X_OK) else None
-            )
+            self._gimp_executable = override if self._is_executable(override) else None
             self._detected = True
             return self._gimp_executable
 
-        for name in ('gimp-console', 'gimp'):
-            found = shutil.which(name)
-            if found:
-                self._gimp_executable = found
-                self._detected = True
-                return found
+        found = next(
+            (p for p in (shutil.which('gimp-console'), shutil.which('gimp')) if p),
+            None,
+        )
+        if found is None:
+            found = next(
+                (p for p in self.BUNDLED_CANDIDATES if self._is_executable(p)),
+                None,
+            )
 
-        self._gimp_executable = None
+        self._gimp_executable = found
         self._detected = True
-        return None
+        return found
+
+    @staticmethod
+    def _is_executable(path):
+        return os.path.isfile(path) and os.access(path, os.X_OK)
 
     def is_available(self):
         return self.detect_gimp_executable() is not None

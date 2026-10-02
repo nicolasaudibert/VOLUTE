@@ -39,7 +39,7 @@ across video frames, but nothing in it is specific to that field.
 
 - Python 3.10+ and PyTorch (CUDA, Apple Silicon MPS, or CPU)
 - A working SAM2, MedSAM2 or SAM2++ installation with its checkpoints
-- PyQt5, matplotlib, NumPy, Pillow, SciPy; optional: pandas + openpyxl for XLSX export, scikit-image or OpenCV for contours, GIMP 2.10+ for the editing round-trip
+- PyQt5, matplotlib, NumPy, Pillow, SciPy; optional: pandas + openpyxl for XLSX export, scikit-image or OpenCV for contours, GIMP 3.0+ for the editing round-trip
 
 ## Installation
 
@@ -105,6 +105,8 @@ Repeat steps 3 to 6 for each object; they are tracked together. **File › Expor
 **[DOCUMENTATION.md](DOCUMENTATION.md)** covers the whole application: every feature, the interaction
 model, the UI layout, keyboard shortcuts, export and file formats, batch processing, localization, and
 an architecture overview of the modules.
+
+**[CHANGELOG.md](CHANGELOG.md)** lists what changed between versions.
 
 ## License
 

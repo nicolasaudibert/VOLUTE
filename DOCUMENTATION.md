@@ -479,7 +479,7 @@ External YAML configuration file (`volute_config.yaml`), editable from **File â€
 - Debug flags (`enabled`, `show_filename_mappings`, `show_mask_sync_details`)
 - Maximum number of frames kept in memory during SAM2 inference (LRU cache), parameter `performance.image_cache_size`. Default: 32. Set to 0 for unlimited.
 - SAM2++ task (`models.sam2plus.task`): `mask` (default) or `point`
-- GIMP command-line executable override for the mask-editing export (`gimp.executable_path`); leave unset to auto-detect `gimp-console`/`gimp` on `PATH`
+- GIMP command-line executable override for the mask-editing export (`gimp.executable_path`); leave unset, which is the default, to auto-detect. Detection looks up `gimp-console` then `gimp` on `PATH`, and failing that inside `/Applications/GIMP.app/Contents/MacOS/`, since a macOS install puts neither on `PATH` â€” note that a shell alias does not help there, the application looks the name up itself and aliases do not exist outside the shell. `gimp-console` is preferred at every step: it carries no GUI, so it opens no window, flashes no Dock icon, and cannot fail for want of a display connection, which the full binary can even under `-i`. Set the override only to name an installation the search does not reach; an override that does not point at an executable file is reported as "not detected" rather than quietly falling back to the search
 
 ---
 

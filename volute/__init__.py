@@ -10,7 +10,7 @@ from .inference_state_manager import InferenceStateManager
 # Application version — single source of truth, read by the launcher and by
 # install_app_bundle_macos.sh. Distinct from the .volute file format version
 # (ProjectStateManager.PROJECT_VERSION), which tracks the schema instead.
-__version__ = "0.9"
+__version__ = "0.9.1"
 __author__ = "Nicolas Audibert"
 
 __all__ = [

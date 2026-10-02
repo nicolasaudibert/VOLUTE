@@ -55,7 +55,7 @@ class ConfigManager:
                 'image_cache_size': 32,   # max frames in LRU cache (0 = unlimited)
             },
             'gimp': {
-                'executable_path': '/Applications/GIMP.app/Contents/MacOS/gimp',   # manual override; None = auto-detect on PATH
+                'executable_path': None,   # manual override; None = auto-detect
             },
         }
         
