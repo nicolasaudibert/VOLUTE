@@ -137,6 +137,7 @@ settings_centroids_format	Centroids format:
 settings_image_quality	JPEG quality of exported images:
 settings_cache_size	Frames kept in memory (0 = unlimited):
 settings_gimp_path	GIMP executable:
+settings_ffmpeg_path	ffmpeg executable:
 settings_debug_enabled	Verbose debug output:
 settings_debug_filenames	Detail filename matching:
 settings_debug_mask_sync	Detail mask synchronization:
@@ -217,6 +218,7 @@ filter_yaml	YAML Files
 filter_xcf	GIMP Files
 filter_image	Image Files
 filter_mask	Mask Files
+filter_video	Video Files
 filter_all	All Files
 
 # Project data management
@@ -499,3 +501,40 @@ gimp_import_replace_default_object	The current object '{0}' has no points or mas
 gimp_export_cancelled	Export cancelled.	Info message — cancelled with no partial output kept, or single-frame export
 gimp_export_partial_cancelled	Export cancelled: {0} of {1} frame(s) exported before cancellation.	Info message with placeholders — cancelled multi-frame export, partial output kept
 gimp_import_cancelled	Import cancelled. No mask was imported.	Info message — cancelled .xcf mask import (all-or-nothing)
+
+# Frame extraction from a video file
+video_frames_menu	Extract Frames from Video…	Menu item text
+video_frames_title	Extract Frames from Video	Dialog title
+video_frames_video	Video file:	Dialog label
+video_frames_select_video	Select a video file	File dialog title
+video_frames_destination	Destination folder:	Dialog label
+video_frames_select_destination	Select the destination folder	File dialog title
+video_frames_format	Image format:	Dialog label
+video_frames_format_jpg	JPEG (compact)	Format choice
+video_frames_format_png	PNG (lossless, much larger)	Format choice
+video_frames_quality	JPEG quality:	Dialog label
+video_frames_rate	Frames:	Dialog label
+video_frames_rate_all	Every frame	Radio button
+video_frames_rate_fps	Per second:	Radio button, followed by a number of frames
+video_frames_range	Time range:	Dialog label
+video_frames_start	From	Checkbox, followed by a time in seconds
+video_frames_end	to	Checkbox, followed by a time in seconds
+video_frames_extract	Extract	Button text
+video_frames_info	Duration {0} s · {1} frames per second · {2} frames · {3}	Video properties with placeholders (duration, rate, frame count, size)
+video_frames_no_ffprobe	ffprobe was not found beside ffmpeg: the video's duration and frame count are unknown, so progress cannot be measured.	Dialog note
+video_frames_probe_failed	This file cannot be read as a video:\n{0}	Dialog note with placeholder (ffprobe error)
+video_frames_preview	About {0} frame(s), named {1}, {2}, …	Dialog note with placeholders (count, first two names)
+video_frames_preview_unknown	Frames named {0}, {1}, …	Dialog note with placeholders (first two names)
+video_frames_no_video	Choose a video file.	Warning message
+video_frames_no_destination	Choose a destination folder.	Warning message
+video_frames_destination_not_folder	The destination exists and is not a folder.	Warning message
+video_frames_destination_has_images	The destination folder already holds images. Choose an empty or new folder, so that the frames are not mixed with other images.	Warning message
+video_frames_bad_range	The end of the time range must come after its start.	Warning message
+video_frames_start_past_end	The start of the time range lies beyond the end of the video ({0} s).	Warning message with placeholder (duration)
+video_frames_progress	Extracting frames from {0}…\n{1} frame(s) written	Progress label with placeholders (video name, count)
+video_frames_cancelled	Extraction cancelled. No frame was kept.	Info message
+video_frames_none	No frame was extracted. Check that the time range lies within the video.	Error message
+video_frames_failed	Frame extraction failed:\n{0}	Error message with placeholder (ffmpeg output)
+video_frames_done_load	{0} frame(s) extracted into:\n{1}\n\nLoad them now?	Question with placeholders (count, folder)
+video_frames_ffmpeg_missing	ffmpeg was not found. Install it (it is free, from ffmpeg.org or a package manager), or give the path to its executable in Settings › Performance and tools.	Warning message
+video_frames_ffmpeg_override_invalid	The ffmpeg path given in Settings › Performance and tools is not an executable file:\n{0}	Warning message with placeholder (configured path)

@@ -15,6 +15,17 @@ A PyQt5 desktop application for interactive and batch video segmentation and poi
 - Automatic model type detection from checkpoint filename
 - Model name displayed in window title after loading; for SAM2++, the active sub-mode (Mask mode / Point tracking mode) is also shown, localized and rebuilt automatically on language change
 
+### Extracting Frames from a Video
+The application works on a folder of numbered images. **File › Extract Frames from Video…** produces one from a video file with [ffmpeg](https://ffmpeg.org), then offers to load it. Nothing more: no playback, no trimming beyond the time range below, no audio.
+
+- **Options**: the video file; the destination folder, suggested as `<video name>_frames` beside the video; the image format — **JPEG** by default, with a quality from 1 to 100 (default 95), or **PNG**; every frame, or a given number of frames per second; and an optional time range, start and end each optional, in seconds
+- **Why JPEG by default**: whatever the format of the frames, SAM2 is fed JPEG copies at quality 95 prepared at load time, so PNG spares the model no compression; it only keeps the frames lossless for display and exports, at about ten times the size — tens of gigabytes for a few minutes of HD video. The video itself is already lossy-compressed
+- **Video properties**: as soon as a video is chosen, ffprobe reads its duration, frame rate, frame count and size; the dialog shows them, bounds the time range by the duration, and previews how many frames to expect and the names of the first two. Without ffprobe the extraction still runs, with a progress bar that cannot be measured
+- **Naming**: frames are named after the video — `<video name>_00000.jpg`, `<video name>_00001.jpg`, … — numbered from 0 and zero-padded to five digits, more when the frame count needs them (`_000000` from 100,001 frames on), so they sort in playback order in every tool, not only in this one. Numbering from 0 also keeps frame 0 the sequence's reference image: the loader puts first the image whose name ends in `00000`, which numbering from 1 would give to frame 100,000. The width is fixed from the number of frames actually written, not from the count the container announces, which can be wrong
+- **Destination already holding images**: refused, with a message, rather than mixed with the new frames; files other than images are tolerated. A destination that does not exist is created
+- **Progress and cancellation**: ffmpeg runs in a worker thread behind a progress dialog, reporting each frame written through its `-progress` output. It writes into a hidden staging folder inside the destination, and the frames are renamed into place only once it has succeeded; Cancel stops ffmpeg and removes everything written, along with the destination folder when the extraction created it. A failure is reported with ffmpeg's own message, and cleaned up the same way
+- **ffmpeg not found**: the menu entry stays available and explains, when chosen, how to install ffmpeg or where to set its path (`ffmpeg.executable_path`, see Configuration). Detection runs again each time, so an installation or a new path takes effect without restarting
+
 ### Point-Based Segmentation (mask mode)
 - **Add points mode** — unified interaction:
   - Left click → positive point (green)
@@ -444,7 +455,7 @@ Dismissing the dialog quits without loading a model. The model catalog lives in 
 ### Settings
 **File › Settings…** edits everything `volute_config.yaml` holds, in four tabs — Interface, Export, Performance and tools, Debugging. **Restore defaults** puts the shipped values back in the fields, writing nothing until **Save**; **Save** writes the file, **Cancel** discards.
 
-Saving rewrites the values in place: the comments documenting each setting survive, and a setting the file does not carry yet is appended to its section. Most settings take effect at the next start — the interface language, the file-dialog style and the model are read once at startup — which the dialog states.
+Saving rewrites the values in place: the comments documenting each setting survive, and a setting the file does not carry yet is appended to its section, ahead of the heading that introduces the next one; a section the file lacks altogether is added at its end. Most settings take effect at the next start — the interface language, the file-dialog style and the model are read once at startup — which the dialog states.
 
 ### Application Name in the Dock and Taskbar
 `QApplication.setApplicationName`, `setApplicationDisplayName` and `setDesktopFileName` name the application for Qt, the window manager and the taskbar.
@@ -480,6 +491,7 @@ External YAML configuration file (`volute_config.yaml`), editable from **File �
 - Maximum number of frames kept in memory during SAM2 inference (LRU cache), parameter `performance.image_cache_size`. Default: 32. Set to 0 for unlimited.
 - SAM2++ task (`models.sam2plus.task`): `mask` (default) or `point`
 - GIMP command-line executable override for the mask-editing export (`gimp.executable_path`); leave unset, which is the default, to auto-detect. Detection looks up `gimp-console` then `gimp` on `PATH`, and failing that inside `/Applications/GIMP.app/Contents/MacOS/`, since a macOS install puts neither on `PATH` — note that a shell alias does not help there, the application looks the name up itself and aliases do not exist outside the shell. `gimp-console` is preferred at every step: it carries no GUI, so it opens no window, flashes no Dock icon, and cannot fail for want of a display connection, which the full binary can even under `-i`. Set the override only to name an installation the search does not reach; an override that does not point at an executable file is reported as "not detected" rather than quietly falling back to the search
+- ffmpeg executable override for frame extraction from a video (`ffmpeg.executable_path`); leave unset, which is the default, to auto-detect. Detection looks up `ffmpeg` on `PATH`, and failing that in the usual install locations an application started from the macOS Finder does not have on its `PATH` — the active conda environment's own `bin/`, then `/opt/homebrew/bin`, `/usr/local/bin`, `/opt/local/bin`, `/usr/bin` and `/snap/bin`. As for GIMP, a shell alias does not help, and an override that does not point at an executable file is reported as "not detected". ffprobe is looked for next to the ffmpeg found, then on `PATH`
 
 ---
 
@@ -650,6 +662,8 @@ If you use the SAM2++ backend, please also cite:
 | `model_dialog.py` | Model catalog and startup model chooser |
 | `settings_dialog.py` | Settings dialog over the YAML configuration |
 | `dialogs.py` | Standalone `QDialog` subclasses (`RepropagationSpanDialog`, `ColorObjectMappingDialog`, `GimpExportDialog`) and the localized message-box helpers |
+| `ffmpeg_manager.py` | ffmpeg/ffprobe detection, video probing, and frame extraction as a cancellable subprocess with progress (no Qt) |
+| `video_frames_ui.py` | Frame extraction dialog, and the controller running it behind a progress dialog and offering to load the result |
 | `gimp_ui_controller.py` | UI-facing GIMP round-trip: export-for-editing dialogs, background-thread progress, plain-image and `.xcf` mask import |
 | `export_actions.py` | Menu-triggered export actions (masked images, coordinates, centroids, hull/contour coordinates, closest-point exports, tracked points, point/mask analysis) |
 | `property_controller.py` | Undo-backed property setters for object/point, tracked point display, reference point, and imported point properties |

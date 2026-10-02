@@ -17,11 +17,11 @@ models:
     config_path: "configs/sam2.1/sam2.1_hiera_b+_predmasks_decoupled_MAME.yaml"
     checkpoint_path: "./checkpoints/SAM2-Plus/checkpoint_phase123.pt"
     task: "mask"   # "mask" | "point"
+  default_model: "sam2_default"       # Model preselected in the startup chooser
 
 # =============================================================================
 # User Interface Settings (ACTIVE)
 # =============================================================================
-  default_model: "sam2_default"
 ui:
   default_language: "en"              # Language code: "en", "fr", etc.
   progress_details_font_size: 12      # Font size for progress dialog details
@@ -35,11 +35,12 @@ ui:
                                       # false: Qt's own, which follow the UI language
                                       #        (on macOS the system panel stays in the
                                       #         system language whatever this app does)
+  show_model_dialog: true             # Show the model chooser at startup
+  show_image_filename: true           # Show the current image's filename above the canvas
 
 # =============================================================================
 # Export Settings (ACTIVE)
 # =============================================================================
-  show_model_dialog: true
 export:
   coordinates_format: "json"          # Default format: "json", "csv", "pickle"
   centroids_format: "excel"           # Default format: "excel", "csv", "json"
@@ -59,3 +60,13 @@ debug:
 performance:
   image_cache_size: 32   # max frames kept in the LRU cache during inference
                          # (0 = unlimited; increase if propagation is slow)
+
+# =============================================================================
+# External Programs (ACTIVE)
+# =============================================================================
+# Executable paths, needed only for an installation the automatic search does
+# not reach; null looks the program up on PATH, then in its usual locations
+gimp:
+  executable_path: null               # GIMP, for the mask-editing round-trip
+ffmpeg:
+  executable_path: null               # ffmpeg, for frame extraction from a video

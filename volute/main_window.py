@@ -33,6 +33,8 @@ from .imported_point_manager import ImportedPointManager
 from .history_manager import HistoryManager
 from .gimp_export_manager import GimpExportManager
 from .gimp_ui_controller import GimpUIController
+from .ffmpeg_manager import FFmpegManager
+from .video_frames_ui import VideoFramesController
 from .export_actions import ExportActions
 from .property_controller import PropertyController
 from .dialogs import localized_question
@@ -104,6 +106,8 @@ class SAM2VideoSegmentationApp(QMainWindow):
         self.history_manager = HistoryManager(self)
         self.gimp_export_manager = GimpExportManager(self, debug_mode=self.debug_mode)
         self.gimp_ui_controller = GimpUIController(self)
+        self.ffmpeg_manager = FFmpegManager(self, debug_mode=self.debug_mode)
+        self.video_frames_controller = VideoFramesController(self)
         self.export_actions = ExportActions(self)
         self.property_controller = PropertyController(self)
         
@@ -360,6 +364,10 @@ class SAM2VideoSegmentationApp(QMainWindow):
         """Delegate to image manager"""
         return self.image_manager.select_folder()
     
+    def extract_video_frames(self):
+        """Delegate to video frames controller"""
+        return self.video_frames_controller.extract_video_frames()
+
     def load_images_from_folder(self, folder):
             """Load images and initialize SAM2; image preparation runs in a background thread."""
             try:

@@ -113,6 +113,12 @@ class UIManager:
         select_folder_action.triggered.connect(self.main_window.select_folder)
         select_folder_action.setShortcut(QKeySequence(Qt.CTRL | Qt.Key_D))
         file_menu.addAction(select_folder_action)
+
+        extract_frames_action = QAction(
+            self.localization.get_text("video_frames_menu"), self.main_window
+        )
+        extract_frames_action.triggered.connect(self.main_window.extract_video_frames)
+        file_menu.addAction(extract_frames_action)
         file_menu.addSeparator()
 
         # Export submenu — actions disabled until masks are available

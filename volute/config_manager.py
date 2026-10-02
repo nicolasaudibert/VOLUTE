@@ -57,6 +57,9 @@ class ConfigManager:
             'gimp': {
                 'executable_path': None,   # manual override; None = auto-detect
             },
+            'ffmpeg': {
+                'executable_path': None,   # manual override; None = auto-detect
+            },
         }
         
         self._load_config()
@@ -286,22 +289,60 @@ class ConfigManager:
         Blank lines, comments and anything that is not a `key: value` pair are
         copied through untouched, so the file keeps its structure and its
         documentation. Keys held in memory but absent from the file are appended
-        to the end of the section they belong to.
+        to the end of the section they belong to, ahead of the blank lines and
+        headings that introduce the next one; subsections absent from the file
+        are created there, and sections absent from it are added at its end.
         """
         missing = self._pending_keys()
         out, stack = [], []   # stack of (indent, key) for the open sections
+
+        def missing_lines(section, indent):
+            """Lines for the missing keys under `section` ('' for the whole
+            file), nested into the subsections they need; removes them from
+            `missing`."""
+            prefix = f"{section}." if section else ''
+            tree = {}
+            for dotted in [d for d in missing if d.startswith(prefix)]:
+                node = tree
+                *parents, key = dotted[len(prefix):].split('.')
+                for part in parents:
+                    node = node.setdefault(part, {})
+                node[key] = dotted
+                missing.remove(dotted)
+            lines = []
+
+            def render(node, ind):
+                for key, value in node.items():
+                    if isinstance(value, dict):
+                        lines.append(f"{' ' * ind}{key}:")
+                        render(value, ind + 2)
+                    else:
+                        lines.append(f"{' ' * ind}{key}: "
+                                     f"{self._format_yaml_scalar(self.get(value))}")
+
+            render(tree, indent)
+            return lines
+
+        def insertion_point(child_indent):
+            """Index in `out` past the section's last line: blank lines and
+            comments indented less than its keys introduce what follows."""
+            index = len(out)
+            while index > 0:
+                previous = out[index - 1]
+                stripped = previous.lstrip()
+                if stripped and not (stripped.startswith('#')
+                                     and len(previous) - len(stripped) < child_indent):
+                    break
+                index -= 1
+            return index
 
         def close_sections(indent):
             """Emit the keys missing from every section shallower than `indent`."""
             while stack and stack[-1][0] >= indent:
                 section = '.'.join(k for _, k in stack)
                 child_indent = stack[-1][0] + 2
-                for dotted in list(missing):
-                    parent, _, key = dotted.rpartition('.')
-                    if parent == section:
-                        out.append(f"{' ' * child_indent}{key}: "
-                                   f"{self._format_yaml_scalar(self.get(dotted))}")
-                        missing.remove(dotted)
+                index = insertion_point(child_indent)
+                out[index:index] = missing_lines(section, child_indent)
                 stack.pop()
 
         for line in lines:
@@ -333,6 +374,12 @@ class ConfigManager:
                            f"{self._format_yaml_scalar(current)}{comment or ''}")
 
         close_sections(0)
+        added = missing_lines('', 0)
+        if added:
+            index = len(out)
+            while index > 0 and not out[index - 1].strip():
+                index -= 1
+            out[index:index] = [''] + added
         return out
 
     def _pending_keys(self):
@@ -446,6 +493,10 @@ class ConfigManager:
     def get_gimp_path(self):
         """Get manual override path for the GIMP executable (None = auto-detect on PATH)"""
         return self.get('gimp.executable_path', None)
+
+    def get_ffmpeg_path(self):
+        """Get manual override path for the ffmpeg executable (None = auto-detect on PATH)"""
+        return self.get('ffmpeg.executable_path', None)
     
     def show_filename_mappings(self):
         """Check if filename mapping debug is enabled"""

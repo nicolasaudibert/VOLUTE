@@ -25,6 +25,7 @@ across video frames, but nothing in it is specific to that field.
 
 ## Features
 
+- **Frames from a video**: extract a video's frames with ffmpeg into a correctly numbered image folder, ready to load
 - **Three ways to define an object**, freely combinable: positive/negative points, an optional bounding box, or an externally composed mask imported from any image editor
 - **Multi-object tracking** with per-object colors, markers and names, bulk editing across a multi-selection, and bidirectional propagation through the whole sequence
 - **Correction workflow**: refine any already-tracked frame, then re-propagate that object alone over a bounded span
@@ -39,7 +40,7 @@ across video frames, but nothing in it is specific to that field.
 
 - Python 3.10+ and PyTorch (CUDA, Apple Silicon MPS, or CPU)
 - A working SAM2, MedSAM2 or SAM2++ installation with its checkpoints
-- PyQt5, matplotlib, NumPy, Pillow, SciPy; optional: pandas + openpyxl for XLSX export, scikit-image or OpenCV for contours, GIMP 3.0+ for the editing round-trip
+- PyQt5, matplotlib, NumPy, Pillow, SciPy; optional: pandas + openpyxl for XLSX export, scikit-image or OpenCV for contours, GIMP 3.0+ for the editing round-trip, ffmpeg (with ffprobe) to extract frames from a video
 
 ## Installation
 
@@ -81,8 +82,9 @@ A first pass over a sequence, from an empty window to exported masks:
 
 1. **Pick a model.** Started without options the application asks; `--model` skips the dialog.
 2. **Load the frames.** **File › Select image folder** (`Ctrl+D`, `⌘D`) and choose a folder of
-   images — one file per frame, in filename order. Navigate with the slider or the frame
-   spinbox below the canvas.
+   images — one file per frame, in filename order. Starting from a video, **File › Extract
+   Frames from Video…** produces that folder first, and offers to load it. Navigate with the
+   slider or the frame spinbox below the canvas.
 3. **Create an object.** **Add object** in the Objects tab. Give it a name and a colour, or
    keep the defaults.
 4. **Point at it.** With *Add points* mode active, left-click inside the object. Right-click

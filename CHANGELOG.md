@@ -4,6 +4,41 @@ Notable changes to VOLUTE. Versions are those reported by **Help › About** and
 by the macOS application bundle; `volute/__init__.py` holds the number everything
 else reads.
 
+## 0.9.2 — 2026-10-02
+
+### Added
+
+- **File › Extract Frames from Video…** turns a video file into the folder of
+  numbered frames the application loads, through ffmpeg, then offers to load
+  it. Options: JPEG (default, quality 1–100) or PNG, every frame or a number of
+  frames per second, and an optional time range. Frames are named after the
+  video, numbered from 0 and zero-padded to at least five digits — more when
+  the frame count calls for it — so they sort in playback order in every tool.
+- A destination folder that already holds images is refused rather than mixed
+  with the new frames. A cancelled or failed extraction leaves no frame behind,
+  nor the destination folder when the extraction created it.
+- `ffmpeg.executable_path` overrides where ffmpeg is looked for; it defaults to
+  none, and discovery searches `PATH`, then the usual Homebrew, MacPorts, conda
+  and system locations that an application started from the Finder does not
+  see on its `PATH`.
+
+### Fixed
+
+- Saving the settings lost the GIMP and ffmpeg executable paths: a setting
+  whose whole section was missing from `volute_config.yaml` was not written,
+  so the path applied for the session and was gone at the next start. Such a
+  section is now added to the file, and the shipped file carries both,
+  documented.
+- A setting missing from an existing section of `volute_config.yaml` was
+  written after the heading of the next section, where it read as belonging
+  to it. It now goes at the end of its own section; the keys already misplaced
+  that way in the shipped file are back in their sections.
+
+### Documentation
+
+- `INSTALL.md` explains how to install ffmpeg, and what to check when the
+  application does not find it.
+
 ## 0.9.1 — 2026-10-02
 
 ### Fixed

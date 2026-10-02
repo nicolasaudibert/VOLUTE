@@ -24,6 +24,7 @@ FILE_FILTER_PATTERNS = {
     'xcf':     '*.xcf',
     'image':   '*.png *.jpg *.jpeg *.bmp *.tif *.tiff',
     'mask':    '*.png *.jpg *.jpeg *.bmp *.tif *.tiff *.xcf',
+    'video':   '*.mp4 *.mov *.avi *.mkv *.m4v *.webm *.mpg *.mpeg *.wmv *.mts *.m2ts',
     'all':     '*',
 }
 

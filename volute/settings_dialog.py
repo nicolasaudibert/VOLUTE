@@ -39,6 +39,7 @@ SETTINGS_FIELDS = [
 
     ('performance.image_cache_size',   'tools',     'settings_cache_size',          'int',      (0, 100000)),
     ('gimp.executable_path',           'tools',     'settings_gimp_path',           'path',     None),
+    ('ffmpeg.executable_path',         'tools',     'settings_ffmpeg_path',         'path',     None),
 
     ('debug.enabled',                  'debug',     'settings_debug_enabled',       'bool',     None),
     ('debug.show_filename_mappings',   'debug',     'settings_debug_filenames',     'bool',     None),
@@ -89,7 +90,7 @@ class SettingsDialog(QDialog):
             grid = grids[tab_key]
             row = grid.rowCount()
             grid.addWidget(QLabel(loc.get_text(label_key)), row, 0)
-            widget, container = self._build_widget(kind, options)
+            widget, container = self._build_widget(kind, options, label_key)
             self.widgets[dotted] = widget
             grid.addWidget(container, row, 1)
 
@@ -112,7 +113,7 @@ class SettingsDialog(QDialog):
         buttons.rejected.connect(self.reject)
         v.addWidget(buttons)
 
-    def _build_widget(self, kind, options):
+    def _build_widget(self, kind, options, label_key):
         """Return (widget carrying the value, widget to place in the layout)."""
         if kind == 'bool':
             widget = QCheckBox()
@@ -144,13 +145,13 @@ class SettingsDialog(QDialog):
         widget = QLineEdit()
         row.addWidget(widget)
         browse = QPushButton(self.localization.get_text("settings_browse"))
-        browse.clicked.connect(lambda: self._browse_into(widget))
+        browse.clicked.connect(lambda: self._browse_into(widget, label_key))
         row.addWidget(browse)
         return widget, container
 
-    def _browse_into(self, line_edit):
+    def _browse_into(self, line_edit, label_key):
         path, _ = QFileDialog.getOpenFileName(
-            self, self.localization.get_text("settings_gimp_path"), line_edit.text())
+            self, self.localization.get_text(label_key), line_edit.text())
         if path:
             line_edit.setText(path)
 

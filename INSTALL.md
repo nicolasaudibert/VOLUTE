@@ -103,6 +103,40 @@ pip install scikit-image
 # or: pip install opencv-python
 ```
 
+### Optional: ffmpeg, to extract frames from a video
+
+**File › Extract Frames from Video…** turns a video file into the folder of numbered
+images the application loads. It relies on [ffmpeg](https://ffmpeg.org) and on `ffprobe`,
+which every ffmpeg distribution ships alongside it. Nothing else in the application needs
+them: without ffmpeg, only this menu entry is unavailable.
+
+Install it either into the conda environment, which works the same on every platform:
+
+```bash
+conda install -c conda-forge ffmpeg
+```
+
+or system-wide:
+
+```bash
+brew install ffmpeg          # macOS (Homebrew)
+sudo apt install ffmpeg      # Debian, Ubuntu
+winget install Gyan.FFmpeg   # Windows; open a new terminal afterwards so PATH is updated
+```
+
+Check that both programs answer:
+
+```bash
+ffmpeg -version
+ffprobe -version
+```
+
+The application looks for `ffmpeg` on `PATH`, then in the conda environment it runs from
+and in the usual Homebrew, MacPorts and system locations — those cover a launch from the
+macOS Finder, which does not inherit the shell's `PATH`. A shell alias is not seen. For an
+installation elsewhere, give the path to the executable in **File › Settings… ›
+Performance and tools › ffmpeg executable**.
+
 ## GUI Installation
 
 The GUI lives in the `tools/` directory of the SAM2-Plus installation, beside the files
@@ -382,6 +416,18 @@ required dependency above, so nothing extra is installed.
 Developed against SAM2-Plus 1.0; a future SAM2 release may make it unnecessary, and the
 script refuses to touch a `misc.py` it does not recognise. See
 `tools/sam2_misc_patch/SAM2_PATCH_README.md` for details and compatibility notes.
+
+### "ffmpeg was not found" when extracting frames from a video
+
+ffmpeg is not installed, or not where the application looks: see
+[Optional: ffmpeg](#optional-ffmpeg-to-extract-frames-from-a-video). If ffmpeg answers in a
+terminal but not in the application, `which ffmpeg` (macOS, Linux) or `where ffmpeg`
+(Windows) gives the path to enter in **File › Settings… › Performance and tools**. If that
+path is the one already set there and the message names it, it does not point at an
+executable file.
+
+When ffprobe alone is missing, extraction still works: the dialog says so, and progress is
+shown as a count of frames written rather than as a percentage.
 
 ### "No module named 'PyQt5'"
 

@@ -137,6 +137,7 @@ settings_centroids_format	Format des centres de gravité :	Settings label
 settings_image_quality	Qualité JPEG des images exportées :	Settings label
 settings_cache_size	Images gardées en mémoire (0 = illimité) :	Settings label
 settings_gimp_path	Exécutable GIMP :	Settings label
+settings_ffmpeg_path	Exécutable ffmpeg :	Settings label
 settings_debug_enabled	Sortie de débogage détaillée :	Settings label
 settings_debug_filenames	Détailler la correspondance des noms de fichiers :	Settings label
 settings_debug_mask_sync	Détailler la synchronisation des masques :	Settings label
@@ -217,6 +218,7 @@ filter_yaml	Fichiers YAML	File dialog filter
 filter_xcf	Fichiers GIMP	File dialog filter
 filter_image	Fichiers image	File dialog filter
 filter_mask	Fichiers de masque	File dialog filter
+filter_video	Fichiers vidéo	File dialog filter
 filter_all	Tous les fichiers	File dialog filter
 
 # Project data management
@@ -499,3 +501,40 @@ gimp_import_replace_default_object	L'objet actuel « {0} » n'a ni points ni mas
 gimp_export_cancelled	Export annulé.	Info message — cancelled with no partial output kept, or single-frame export
 gimp_export_partial_cancelled	Export annulé : {0} trame(s) sur {1} exportées avant l'annulation.	Info message with placeholders — cancelled multi-frame export, partial output kept
 gimp_import_cancelled	Import annulé. Aucun masque n'a été importé.	Info message — cancelled .xcf mask import (all-or-nothing)
+
+# Frame extraction from a video file
+video_frames_menu	Extraire les trames d'une vidéo…	Menu item text
+video_frames_title	Extraire les trames d'une vidéo	Dialog title
+video_frames_video	Fichier vidéo :	Dialog label
+video_frames_select_video	Sélectionner un fichier vidéo	File dialog title
+video_frames_destination	Dossier de destination :	Dialog label
+video_frames_select_destination	Sélectionner le dossier de destination	File dialog title
+video_frames_format	Format d'image :	Dialog label
+video_frames_format_jpg	JPEG (compact)	Format choice
+video_frames_format_png	PNG (sans perte, bien plus volumineux)	Format choice
+video_frames_quality	Qualité JPEG :	Dialog label
+video_frames_rate	Trames :	Dialog label
+video_frames_rate_all	Toutes les trames	Radio button
+video_frames_rate_fps	Par seconde :	Radio button, followed by a number of frames
+video_frames_range	Intervalle :	Dialog label
+video_frames_start	De	Checkbox, followed by a time in seconds
+video_frames_end	à	Checkbox, followed by a time in seconds
+video_frames_extract	Extraire	Button text
+video_frames_info	Durée {0} s · {1} trames par seconde · {2} trames · {3}	Video properties with placeholders (duration, rate, frame count, size)
+video_frames_no_ffprobe	ffprobe est introuvable à côté de ffmpeg : la durée et le nombre de trames de la vidéo sont inconnus, la progression ne pourra pas être mesurée.	Dialog note
+video_frames_probe_failed	Ce fichier ne peut pas être lu comme une vidéo :\n{0}	Dialog note with placeholder (ffprobe error)
+video_frames_preview	Environ {0} trame(s), nommées {1}, {2}, …	Dialog note with placeholders (count, first two names)
+video_frames_preview_unknown	Trames nommées {0}, {1}, …	Dialog note with placeholders (first two names)
+video_frames_no_video	Choisissez un fichier vidéo.	Warning message
+video_frames_no_destination	Choisissez un dossier de destination.	Warning message
+video_frames_destination_not_folder	La destination existe et n'est pas un dossier.	Warning message
+video_frames_destination_has_images	Le dossier de destination contient déjà des images. Choisissez un dossier vide ou nouveau, pour que les trames ne soient pas mêlées à d'autres images.	Warning message
+video_frames_bad_range	La fin de l'intervalle doit venir après son début.	Warning message
+video_frames_start_past_end	Le début de l'intervalle se situe après la fin de la vidéo ({0} s).	Warning message with placeholder (duration)
+video_frames_progress	Extraction des trames de {0}…\n{1} trame(s) écrite(s)	Progress label with placeholders (video name, count)
+video_frames_cancelled	Extraction annulée. Aucune trame n'a été conservée.	Info message
+video_frames_none	Aucune trame n'a été extraite. Vérifiez que l'intervalle se situe dans la vidéo.	Error message
+video_frames_failed	L'extraction des trames a échoué :\n{0}	Error message with placeholder (ffmpeg output)
+video_frames_done_load	{0} trame(s) extraite(s) dans :\n{1}\n\nLes charger maintenant ?	Question with placeholders (count, folder)
+video_frames_ffmpeg_missing	ffmpeg est introuvable. Installez-le (il est gratuit, sur ffmpeg.org ou par un gestionnaire de paquets), ou indiquez le chemin de son exécutable dans Paramètres › Performances et outils.	Warning message
+video_frames_ffmpeg_override_invalid	Le chemin de ffmpeg indiqué dans Paramètres › Performances et outils n'est pas un fichier exécutable :\n{0}	Warning message with placeholder (configured path)
