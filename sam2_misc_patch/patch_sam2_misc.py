@@ -1,6 +1,7 @@
 """
 Patch sam2/utils/misc.py to add a CPU/MPS fallback for get_connected_components,
-replacing the CUDA-only _C extension when CUDA is not available.
+replacing the CUDA-only _C extension whenever that extension cannot be used:
+CUDA is not available, or SAM2 was installed without compiling it.
 Run this script once after installing SAM2.
 """
 
@@ -62,9 +63,16 @@ ORIGINAL_FUNC = '''def get_connected_components(mask):
     return _C.get_connected_componnets(mask.to(torch.uint8).contiguous())'''
 
 
-def check_cuda_available():
+def check_cuda_extension_usable():
+    """True when CUDA is available and SAM2's compiled _C extension imports."""
     import torch
-    return torch.cuda.is_available()
+    if not torch.cuda.is_available():
+        return False
+    try:
+        from sam2 import _C  # noqa: F401
+    except ImportError:
+        return False
+    return True
 
 
 def ensure_dependency(package_name, import_name=None):
@@ -117,10 +125,13 @@ def main():
 
     print("=== SAM2 MPS/CPU fallback patcher ===\n")
 
-    # 1. Check whether CUDA is available — skip patch if it is
-    if check_cuda_available():
-        print("[INFO] CUDA is available — patch not needed. Exiting.")
+    # 1. Skip the patch when the compiled CUDA extension can do the work
+    if check_cuda_extension_usable():
+        print("[INFO] CUDA and the compiled _C extension are available — patch not needed. Exiting.")
         sys.exit(0)
+    elif torch.cuda.is_available():
+        print("[INFO] CUDA is available but SAM2's _C extension was not compiled. "
+              "Applying fallback patch.\n")
     else:
         device = "MPS" if torch.backends.mps.is_available() else "CPU"
         print(f"[INFO] CUDA not available (device: {device}). Applying fallback patch.\n")

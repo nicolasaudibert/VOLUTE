@@ -246,39 +246,19 @@ chmod +x "$BUNDLE/Contents/Resources/run.sh"
 # judged as /bin/bash — a system binary with no claim on the person's folders,
 # which is denied without ever showing a prompt. A binary signed as part of the
 # bundle carries the bundle's own identity, and the processes it starts inherit it.
-LAUNCHER_SRC="$(mktemp -t volute_launcher).c"
-cat > "$LAUNCHER_SRC" << 'LAUNCHER_C'
-/* Bundle executable: locates Contents/Resources/run.sh next to itself and runs
-   it. Resolving its own path keeps the bundle movable (Dock, /Applications). */
-#include <libgen.h>
-#include <limits.h>
-#include <mach-o/dyld.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-int main(void) {
-    char exec_path[PATH_MAX], resolved[PATH_MAX], script[PATH_MAX];
-    uint32_t size = sizeof(exec_path);
-
-    if (_NSGetExecutablePath(exec_path, &size) != 0) return 127;
-    if (realpath(exec_path, resolved) == NULL) return 127;
-
-    /* <bundle>/Contents/MacOS/launcher -> <bundle>/Contents */
-    char macos_dir[PATH_MAX];
-    snprintf(macos_dir, sizeof(macos_dir), "%s", dirname(resolved));
-    char contents_dir[PATH_MAX];
-    snprintf(contents_dir, sizeof(contents_dir), "%s", dirname(macos_dir));
-    snprintf(script, sizeof(script), "%s/Resources/run.sh", contents_dir);
-
-    execl("/bin/bash", "bash", script, contents_dir, (char *)NULL);
-    return 127;
-}
-LAUNCHER_C
-
-if command -v cc >/dev/null 2>&1 && cc -O2 -o "$BUNDLE/Contents/MacOS/launcher" "$LAUNCHER_SRC" 2>/dev/null; then
+LAUNCHER_DIR="tools/macos_launcher"
+# Without the Command Line Tools, /usr/bin/cc is a stub that opens a dialog
+# offering to install them: check for them first rather than call it. Without
+# them, the universal binary built from the same source and shipped beside it
+# is used instead; it is copied through cat, which carries over no quarantine
+# attribute the folder may have picked up from a browser download.
+if xcode-select -p >/dev/null 2>&1 && command -v cc >/dev/null 2>&1 \
+        && cc -O2 -o "$BUNDLE/Contents/MacOS/launcher" "$LAUNCHER_DIR/launcher.c" 2>/dev/null; then
     echo "  ✓ Compiled launcher"
+elif [ -f "$LAUNCHER_DIR/launcher" ]; then
+    cat "$LAUNCHER_DIR/launcher" > "$BUNDLE/Contents/MacOS/launcher"
+    chmod +x "$BUNDLE/Contents/MacOS/launcher"
+    echo "  ✓ Prebuilt launcher (no C compiler available)"
 else
     echo "  ! No C compiler (install the Xcode Command Line Tools: xcode-select --install)."
     echo "    Falling back to a script launcher: the application will start only if the"
@@ -286,7 +266,6 @@ else
     cp "$BUNDLE/Contents/Resources/run.sh" "$BUNDLE/Contents/MacOS/launcher"
     chmod +x "$BUNDLE/Contents/MacOS/launcher"
 fi
-rm -f "$LAUNCHER_SRC"
 
 # Ad-hoc signature: macOS ties folder-access permissions to an application's code
 # signature. Unsigned, the bundle gets a new identity at every launch and any

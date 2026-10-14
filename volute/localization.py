@@ -142,17 +142,24 @@ class LocalizationManager:
             "define_box": "Define box",
             "define_box_tooltip": "Click and drag to define a bounding box | One box per object and frame, combined with that frame's points",
             "remove_box_btn": "Remove box",
-            "box_points_outside_title": "Points contradicting the box",
+            "box_points_outside_title": "Points outside the box",
             "box_points_outside_msg": (
                 "{0} positive and {1} negative point(s) of this object on this frame "
                 "lie outside the box just drawn. SAM2 receives the box and the points "
-                "together, so these points contradict the box rather than being ignored."
+                "together: positive points outside the box contradict it, while negative "
+                "ones agree with it but may no longer be needed."
             ),
             "box_points_outside_delete_hint": "Delete the points outside the box?",
             "point_outside_box_confirm": (
-                "This point lies outside the box defined for this object on this frame. "
+                "This positive point lies outside the box defined for this object on this frame. "
                 "SAM2 receives the box and the points together, so this point will "
                 "contradict the box rather than being ignored. Add it anyway?"
+            ),
+            "point_outside_box_confirm_negative": (
+                "This negative point lies outside the box defined for this object on this "
+                "frame. It does not contradict the box: SAM2 receives the box and the points "
+                "together, and this point marks an area to leave out of the mask, useful "
+                "where the mask spills over the box. Add it?"
             ),
             "box_mask_import_conflict": (
                 "The mask of this object on this frame comes from an imported mask. "
@@ -290,6 +297,8 @@ class LocalizationManager:
             "model_desc_medsam2_liver": "Liver lesions in MRI",
             "model_desc_sam2plus_mask": "Drop-in SAM2 replacement",
             "model_desc_sam2plus_point": "Point trajectories",
+            "model_not_installed": "not installed",
+            "model_missing_tooltip": "This model is not installed. Run the VOLUTE installation command again to add it.",
             "settings_menu": "Settings…",
             "settings_title": "Settings",
             "settings_tab_interface": "Interface",
@@ -320,6 +329,12 @@ class LocalizationManager:
             "settings_restart_note": "Most settings take effect the next time the application starts.",
             "settings_saved": "Settings saved.",
             "settings_save_failed": "The configuration file could not be written.",
+            "settings_pacing_file": "Frame durations of the file",
+            "settings_pacing_progress": "One frame per progress update",
+            "settings_format_json": "JSON",
+            "settings_format_csv": "CSV",
+            "settings_format_pickle": "Pickle",
+            "settings_format_excel": "Excel (XLSX)",
             "about_version":       "Version {0}",
             "about_credits_title": "Credits",
             "about_credits_body":  "Developed by <a href='https://lpp.cnrs.fr/nicolas-audibert/'><b>Nicolas Audibert</b></a> "
@@ -496,6 +511,8 @@ class LocalizationManager:
             "batch_output_placeholder": "Select output folder\u2026",
             "batch_ready": "Ready.",
             "batch_opt_propagate": "Propagate masks",
+            "batch_opt_propagate_points": "Propagate points",
+            "batch_opt_export_tracked_points_tooltip": "Available when VOLUTE runs SAM2++ in point tracking mode",
             "batch_opt_export_images": "Export masked images",
             "batch_opt_state_predict": "Export inference state (prediction)",
             "batch_opt_state_prop": "Export inference state (propagation)",
@@ -518,6 +535,56 @@ class LocalizationManager:
             "batch_status_ok": "OK",
             "batch_status_errors": "ERRORS",
             "batch_complete": "Batch complete: {0}/{1} succeeded.",
+            "batch_table_tooltip": "Double-click a cell to edit directly.\nLeave 'Ref Frame' empty to use the first frame with points.",
+            "batch_file_not_found": "File not found: {0}",
+            "batch_folder_not_found": "Folder not found: {0}",
+            "batch_item_result": "[{0}/{1}] {2}: {3}",
+            "batch_log_loading_project": "Loading {0}…",
+            "batch_log_loading_images": "Loading images…",
+            "batch_log_importing_tracked_points": "Importing tracked points…",
+            "batch_log_reference_frame": "Reference frame: {0} / {1}",
+            "batch_log_predicting_reference": "Predicting reference frame…",
+            "batch_log_exporting_state_predict": "Exporting inference state (prediction)…",
+            "batch_log_propagating": "Propagating masks…",
+            "batch_log_propagating_points": "Propagating tracked points…",
+            "batch_log_exporting_state_propagate": "Exporting inference state (propagation)…",
+            "batch_log_exporting_images": "Exporting masked images…",
+            "batch_log_images_exported": "{0} images exported",
+            "batch_log_exporting_centroids": "Exporting centroids…",
+            "batch_log_exporting_coordinates": "Exporting mask coordinates…",
+            "batch_log_exporting_contours": "Exporting contour coordinates…",
+            "batch_log_exporting_hulls": "Exporting hull coordinates…",
+            "batch_log_exporting_tracked_points": "Exporting tracked points…",
+            "batch_log_exporting_closest_points": "Exporting closest mask points…",
+            "batch_log_exporting_point_mask_analysis": "Exporting point/mask analysis…",
+            "batch_progress_predicting_object": "Predicting object {0} ({1}/{2})",
+            "batch_progress_prediction_done": "Prediction complete",
+            "batch_progress_forward": "Forward propagation",
+            "batch_progress_backward": "Backward propagation",
+            "batch_progress_point_forward": "Forward point-track propagation",
+            "batch_progress_point_backward": "Backward point-track propagation",
+            "batch_progress_frame": "{0}… (frame {1})",
+            "batch_error_step": "{0} error: {1}",
+            "batch_error_prediction": "Prediction error (obj {0}): {1}",
+            "batch_error_no_objects": "No objects found in .volute file",
+            "batch_error_no_images": "No images found in {0}",
+            "batch_error_sam2_init": "SAM2 initialization failed",
+            "batch_error_state_predict": "State export (predict): {0}",
+            "batch_error_state_propagate": "State export (propagate): {0}",
+            "batch_error_images": "Image export: {0}",
+            "batch_error_centroids": "Centroids export: {0}",
+            "batch_error_coordinates": "Coordinates export: {0}",
+            "batch_error_contours": "Contour coordinates export: {0}",
+            "batch_error_hulls": "Hull coordinates export: {0}",
+            "batch_error_tracked_points": "Tracked points export: {0}",
+            "batch_error_closest_points": "Closest mask points export: {0}",
+            "batch_error_point_mask_analysis": "Point/mask analysis export: {0}",
+            "batch_error_unexpected": "Unexpected error: {0}",
+            "batch_warning_frame_count_mismatch": "Tracked points frame count mismatch: {0} imported vs {1} in folder",
+            "batch_warning_no_filename_match": "None of the imported filenames match the current image folder",
+            "batch_warning_filenames_unmatched": "{0} imported filename(s) unmatched and skipped",
+            "batch_warning_out_of_bounds": "Out-of-bounds imported points for: {0}",
+            "batch_warning_tracked_points_skipped": "Tracked points import skipped: {0}",
             
             # Reference points
             "ref_points": "Reference Points",

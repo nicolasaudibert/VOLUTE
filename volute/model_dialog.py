@@ -10,6 +10,8 @@ launcher can load it before importing volute — whose own import pulls in
 torch and SAM2, several seconds the dialog should not wait for.
 """
 
+from pathlib import Path
+
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
     QCheckBox, QPushButton, QDialogButtonBox,
@@ -82,6 +84,37 @@ MODEL_ENTRIES = [
 ]
 
 
+# Config and checkpoint a family starts from when its entry names none. Paths
+# are relative to the SAM2-Plus root, the launcher's working directory; configs
+# resolve inside the package that builds the model.
+FAMILY_DEFAULTS = {
+    'sam2': ('configs/sam2.1/sam2.1_hiera_l.yaml',
+             './checkpoints/sam2.1_hiera_large.pt'),
+    'medsam2': ('configs/medsam2_configs/sam2.1_hiera_t512.yaml',
+                './checkpoints/MedSAM2_latest.pt'),
+    'sam2plus': ('configs/sam2.1/sam2.1_hiera_b+_predmasks_decoupled_MAME.yaml',
+                 './checkpoints/SAM2-Plus/checkpoint_phase123.pt'),
+}
+
+
+def entry_paths(entry):
+    """Return the (config, checkpoint) an entry starts from."""
+    config, checkpoint = FAMILY_DEFAULTS[entry['model']]
+    return entry.get('config', config), entry.get('checkpoint', checkpoint)
+
+
+def is_installed(entry, root='.'):
+    """Whether the entry's checkpoint and config are both present under root.
+
+    MedSAM2 also needs its config inside the sam2 package, which the installer
+    downloads with its checkpoints.
+    """
+    config, checkpoint = entry_paths(entry)
+    package = 'sam2_plus' if entry['model'] == 'sam2plus' else 'sam2'
+    root = Path(root)
+    return (root / checkpoint).is_file() and (root / package / config).is_file()
+
+
 def find_entry(key):
     """Return the catalog entry with this key, or the first one when unknown."""
     for entry in MODEL_ENTRIES:
@@ -116,22 +149,32 @@ class ModelSelectionDialog(QDialog):
 
         v.addWidget(QLabel(loc.get_text("model_dialog_prompt")))
 
+        # A model whose files are missing stays listed, greyed out, with a
+        # tooltip saying how to get it
         self.list_widget = QListWidget()
         for entry in MODEL_ENTRIES:
-            item = QListWidgetItem(
-                f"{entry['label']} — {loc.get_text(entry['description'])}")
+            text = f"{entry['label']} — {loc.get_text(entry['description'])}"
+            item = QListWidgetItem(text)
             item.setData(Qt.UserRole, entry['key'])
+            if not is_installed(entry):
+                item.setText(f"{text} ({loc.get_text('model_not_installed')})")
+                item.setFlags(item.flags() & ~(Qt.ItemIsEnabled | Qt.ItemIsSelectable))
+                item.setToolTip(loc.get_text('model_missing_tooltip'))
             self.list_widget.addItem(item)
         self.list_widget.itemDoubleClicked.connect(self.accept)
         v.addWidget(self.list_widget)
 
+        # The default model when installed, else the first installed one
         default_key = self.config_manager.get_default_model()
-        for row in range(self.list_widget.count()):
+        installed = [row for row in range(self.list_widget.count())
+                     if self._is_enabled(self.list_widget.item(row))]
+        for row in installed:
             if self.list_widget.item(row).data(Qt.UserRole) == default_key:
                 self.list_widget.setCurrentRow(row)
                 break
         else:
-            self.list_widget.setCurrentRow(0)
+            if installed:
+                self.list_widget.setCurrentRow(installed[0])
 
         self.set_default_checkbox = QCheckBox(loc.get_text("model_set_default"))
         self.set_default_checkbox.setToolTip(loc.get_text("model_set_default_tooltip"))
@@ -150,14 +193,19 @@ class ModelSelectionDialog(QDialog):
         launch = buttons.addButton(loc.get_text("model_dialog_launch"),
                                    QDialogButtonBox.AcceptRole)
         launch.setDefault(True)
+        launch.setEnabled(bool(installed))
         buttons.addButton(loc.get_text("cancel"), QDialogButtonBox.RejectRole)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         v.addWidget(buttons)
 
+    @staticmethod
+    def _is_enabled(item):
+        return bool(item.flags() & Qt.ItemIsEnabled)
+
     def accept(self):
         item = self.list_widget.currentItem()
-        if item is None:
+        if item is None or not self._is_enabled(item):
             return
         self.chosen_entry = find_entry(item.data(Qt.UserRole))
         self.debug_enabled = self.debug_checkbox.isChecked()

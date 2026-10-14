@@ -25,10 +25,11 @@ remove_points_tooltip	Cliquer-glisser pour sélectionner une zone | Tous les poi
 define_box	Définir une boîte	Radio button text
 define_box_tooltip	Cliquer-glisser pour définir une boîte englobante | Une boîte par objet et par image, combinée aux points de cette image	Tooltip for define box radio button
 remove_box_btn	Supprimer la boîte	Button text
-box_points_outside_title	Points en contradiction avec la boîte	Dialog title
-box_points_outside_msg	{0} point(s) positif(s) et {1} point(s) négatif(s) de cet objet sur cette image sont hors de la boîte qui vient d'être tracée. SAM2 reçoit la boîte et les points ensemble : ces points contredisent la boîte, ils ne sont pas ignorés.	Dialog message
+box_points_outside_title	Points hors de la boîte	Dialog title
+box_points_outside_msg	{0} point(s) positif(s) et {1} point(s) négatif(s) de cet objet sur cette image sont hors de la boîte qui vient d'être tracée. SAM2 reçoit la boîte et les points ensemble : les points positifs hors de la boîte la contredisent, tandis que les points négatifs vont dans son sens, mais peuvent ne plus être utiles.	Dialog message
 box_points_outside_delete_hint	Supprimer les points à l'extérieur de la boîte ?	Dialog question
-point_outside_box_confirm	Ce point est hors de la boîte définie pour cet objet sur cette image. SAM2 reçoit la boîte et les points ensemble : ce point contredira la boîte, il ne sera pas ignoré. L'ajouter quand même ?	Confirmation dialog
+point_outside_box_confirm	Ce point positif est hors de la boîte définie pour cet objet sur cette image. SAM2 reçoit la boîte et les points ensemble : ce point contredira la boîte, il ne sera pas ignoré. L'ajouter quand même ?	Confirmation dialog
+point_outside_box_confirm_negative	Ce point négatif est hors de la boîte définie pour cet objet sur cette image. Il ne contredit pas la boîte : SAM2 reçoit la boîte et les points ensemble, et ce point désigne une zone à exclure du masque, utile là où le masque déborde de la boîte. L'ajouter ?	Confirmation dialog
 box_delete_imported_mask	Supprimer immédiatement le masque existant	Checkbox label
 strict_box_clipping	Masques strictement confinés à la boîte :	Label for strict clipping checkbox
 strict_box_clipping_tooltip	Efface tout pixel prédit hors de la boîte. Ne s'applique qu'aux prédictions et propagations suivantes : un masque déjà rogné ne peut pas être restauré en désactivant l'option.	Tooltip for strict clipping checkbox
@@ -39,21 +40,21 @@ box_clipping_reference_warning	La boîte de référence est celle définie sur l
 box_mask_import_conflict	Le masque de cet objet sur cette image provient d'un masque importé. Une boîte et un masque importé sont des conditionnements concurrents : la prochaine prédiction remplacera le masque importé. Définir la boîte quand même ?	Confirmation dialog
 box_mask_import_conflict_batch	{0} des masques sur le point d'être importés visent un objet et une image possédant déjà une boîte. Une boîte et un masque importé sont des conditionnements concurrents : la prochaine prédiction remplacera le masque importé sur ces images. Importer quand même ?	Confirmation dialog
 show_points_global	Afficher les points (objet actuel) :	Label for global show points checkbox
-remove_points	Supprimer points	Radio button text
+remove_points	Supprimer des points	Radio button text
 clear_all_points	Effacer tous les points	Button text
 multi_selection_add_points_blocked	L'ajout de points nécessite qu'un seul objet soit sélectionné.	Warning message
 
 # Object management
 object_management	Gestion des objets	Panel title for object management
-object_list	Liste des objets:	Label for object list
+object_list	Liste des objets :	Label for object list
 add_object	Ajouter un objet	Button text
 remove_object	Supprimer l'objet	Button text
 current_object_config	Configuration de l'objet actuel	Panel title
-positive_points_color	Couleur points positifs:	Label for color selection
-negative_points_color	Couleur points négatifs:	Label for color selection
-mask_color	Couleur du masque:	Label for color selection
-marker_style	Style des marqueurs:	Label for marker style
-marker_size	Taille des marqueurs:	Label for marker size
+positive_points_color	Couleur points positifs :	Label for color selection
+negative_points_color	Couleur points négatifs :	Label for color selection
+mask_color	Couleur du masque :	Label for color selection
+marker_style	Style des marqueurs :	Label for marker style
+marker_size	Taille des marqueurs :	Label for marker size
 marker_style_circle	Cercle	Marker style name
 marker_style_square	Carré	Marker style name
 marker_style_triangle	Triangle	Marker style name
@@ -63,9 +64,9 @@ marker_style_cross	Croix	Marker style name
 marker_style_plus	Plus	Marker style name
 marker_style_plus_filled	Plus plein	Marker style name
 marker_style_cross_filled	Croix pleine	Marker style name
-mask_opacity	Opacité du masque:	Label for mask opacity
-show_points	Afficher les points:	Label for checkbox
-object_name	Nom de l'objet:	Label for text input
+mask_opacity	Opacité du masque :	Label for mask opacity
+show_points	Afficher les points :	Label for checkbox
+object_name	Nom de l'objet :	Label for text input
 object	Objet	Default object name prefix
 point	Point	Default point name prefix (SAM2++ point tracking mode)
 point_name	Nom du point :	Label for text input (SAM2++ point tracking mode)
@@ -77,12 +78,12 @@ predict_current	Prédire les masques sur l'image actuelle	Button text
 propagate_masks	Propager les masques sur toute la vidéo	Button text
 
 # Display options
-background_opacity	Opacité de l'arrière-plan:	Label for background opacity slider
-show_labels	Afficher les étiquettes:	Label for show labels checkbox
+background_opacity	Opacité de l'arrière-plan :	Label for background opacity slider
+show_labels	Afficher les étiquettes :	Label for show labels checkbox
 centroid_config	Configuration des centres de gravité	Panel title for centroid settings
-show_centroids	Afficher les centres de gravité:	Label for centroid visibility
-centroid_color	Couleur des centres:	Label for centroid color
-centroid_size	Taille des centres:	Label for centroid size
+show_centroids	Afficher les centres de gravité :	Label for centroid visibility
+centroid_color	Couleur des centres :	Label for centroid color
+centroid_size	Taille des centres :	Label for centroid size
 
 # Export
 export	Exportation	Panel title for export controls
@@ -108,7 +109,7 @@ model_set_default	Définir par défaut	Checkbox label
 model_set_default_tooltip	Enregistre ce modèle comme celui présélectionné ici, et utilisé directement lorsque cette liste n'est pas affichée.	Checkbox tooltip
 model_show_at_startup	Afficher cette liste au démarrage	Checkbox label
 model_show_at_startup_tooltip	Si décochée, l'application démarre directement avec le modèle par défaut. Ce choix peut être modifié dans les réglages de l'application.	Checkbox tooltip
-debug_mode_label	Mode déboggage	Checkbox label
+debug_mode_label	Mode débogage	Checkbox label
 debug_mode_tooltip	Affiche dans la console des informations techniques détaillées sur le fonctionnement de l'application, ou les enregistre dans le fichier .log en cas de lancement depuis un bundle applicatif.	Checkbox tooltip
 model_desc_sam2_default	Meilleure précision	Model description
 model_desc_sam2_small	Traitement plus rapide	Model description
@@ -118,6 +119,8 @@ model_desc_medsam2_heart	Échographie cardiaque	Model description
 model_desc_medsam2_liver	Lésions hépatiques en IRM	Model description
 model_desc_sam2plus_mask	Remplacement direct de SAM2	Model description
 model_desc_sam2plus_point	Trajectoires de points	Model description
+model_not_installed	non installé	Model list suffix
+model_missing_tooltip	Ce modèle n'est pas installé. Relancez la commande d'installation de VOLUTE pour l'ajouter.	Model list tooltip
 settings_menu	Paramètres…	Menu item text
 settings_title	Paramètres	Dialog title
 settings_tab_interface	Interface	Settings tab
@@ -148,6 +151,12 @@ settings_restore_confirm	Restaurer tous les paramètres à leur valeur par défa
 settings_restart_note	La plupart des paramètres prennent effet au prochain démarrage de l'application.	Informative note
 settings_saved	Paramètres enregistrés.	Success message
 settings_save_failed	Le fichier de configuration n'a pas pu être écrit.	Error message
+settings_pacing_file	Durées des images du fichier	Choice for the progress animation pace: plays at the file's own frame durations
+settings_pacing_progress	Une image par étape de la progression	Choice for the progress animation pace: advances with the task's progress
+settings_format_json	JSON	Export format name in the settings
+settings_format_csv	CSV	Export format name in the settings
+settings_format_pickle	Pickle	Export format name in the settings
+settings_format_excel	Excel (XLSX)	Export format name in the settings
 about_version	Version {0}	Version line in the About dialog
 about_credits_title	Crédits	Section heading
 about_credits_body	Développée par <a href='https://lpp.cnrs.fr/nicolas-audibert/'><b>Nicolas Audibert</b></a> avec l'assistance de <a href='https://claude.ai'>Claude</a> (Anthropic) comme assistant IA.	Credits text
@@ -194,12 +203,12 @@ cannot_remove_all_points	Vous devez conserver au moins un point.	Warning message
 confirm_remove_object	Êtes-vous sûr de vouloir supprimer l'objet {0} ?	Confirmation message with placeholder
 prediction_successful	Prédiction réussie pour {0} objet(s) sur l'image {1}.	Success message with placeholders
 no_masks_generated	Aucun masque n'a pu être généré.	Warning message
-propagation_successful	Propagation bidirectionnelle réussie: {0} masques générés pour {1} objets.	Success message with placeholders
+propagation_successful	Propagation bidirectionnelle réussie : {0} masques générés pour {1} objets.	Success message with placeholders
 images_exported	{0} images exportées avec succès dans {1}	Success message with placeholders
-coordinates_exported	Coordonnées des masques exportées avec succès: {0} masques.	Success message with placeholder
+coordinates_exported	Coordonnées des masques exportées avec succès : {0} masques.	Success message with placeholder
 centroids_exported	Centres de gravité exportés avec succès ({0} centres).	Success message with placeholder
 tracked_points_exported	Points suivis exportés avec succès ({0} points).	Success message with placeholder
-pandas_required	Les bibliothèques pandas et openpyxl sont nécessaires pour l'export Excel. Veuillez les installer avec: pip install pandas openpyxl	Error message
+pandas_required	Les bibliothèques pandas et openpyxl sont nécessaires pour l'export Excel. Veuillez les installer avec : pip install pandas openpyxl	Error message
 prediction_cancelled	Prédiction annulée par l'utilisateur.	Info message
 propagation_cancelled	Propagation interrompue après {0} opérations.	Info message with placeholder
 folder	Dossier	Generic label
@@ -306,6 +315,8 @@ batch_output_folder	Dossier de sortie :	Label for output folder field
 batch_output_placeholder	Sélectionner un dossier de sortie…	Placeholder text for output folder field
 batch_ready	Prêt.	Initial status label text
 batch_opt_propagate	Propager les masques	Checkbox label
+batch_opt_propagate_points	Propager les points	Checkbox label (SAM2++ point tracking mode)
+batch_opt_export_tracked_points_tooltip	Disponible quand VOLUTE utilise SAM2++ en mode suivi de points	Tooltip of the disabled Export tracked points checkbox
 batch_opt_export_images	Exporter les images masquées	Checkbox label
 batch_opt_state_predict	Exporter l'état d'inférence (prédiction)	Checkbox label
 batch_opt_state_prop	Exporter l'état d'inférence (propagation)	Checkbox label
@@ -328,6 +339,56 @@ batch_cancel_requested	Annulation demandée…	Log message
 batch_status_ok	OK	Item result status
 batch_status_errors	ERREURS	Item result status
 batch_complete	Lot terminé : {0}/{1} réussi(s).	Log message with placeholders
+batch_table_tooltip	Double-cliquez sur une cellule pour la modifier directement.\nLaissez « Image de référence » vide pour utiliser la première image comportant des points.	Tooltip of the batch items table
+batch_file_not_found	Fichier introuvable : {0}	Invalid path in the batch items
+batch_folder_not_found	Dossier introuvable : {0}	Invalid path in the batch items
+batch_item_result	[{0}/{1}] {2} : {3}	Log line after each item: index, total, folder, status
+batch_log_loading_project	Chargement de {0}…	Batch log: project file being loaded
+batch_log_loading_images	Chargement des images…	Batch log
+batch_log_importing_tracked_points	Importation des points suivis…	Batch log
+batch_log_reference_frame	Image de référence : {0} / {1}	Batch log: reference frame index / last frame index
+batch_log_predicting_reference	Prédiction sur l'image de référence…	Batch log
+batch_log_exporting_state_predict	Export de l'état d'inférence (prédiction)…	Batch log
+batch_log_propagating	Propagation des masques…	Batch log
+batch_log_propagating_points	Propagation des points suivis…	Batch log (SAM2++ point tracking mode)
+batch_log_exporting_state_propagate	Export de l'état d'inférence (propagation)…	Batch log
+batch_log_exporting_images	Export des images masquées…	Batch log
+batch_log_images_exported	{0} image(s) exportée(s)	Batch log: number of images exported
+batch_log_exporting_centroids	Export des centres de gravité…	Batch log
+batch_log_exporting_coordinates	Export des coordonnées des masques…	Batch log
+batch_log_exporting_contours	Export des coordonnées des contours…	Batch log
+batch_log_exporting_hulls	Export des coordonnées des enveloppes convexes…	Batch log
+batch_log_exporting_tracked_points	Export des points suivis…	Batch log
+batch_log_exporting_closest_points	Export des points de masque les plus proches…	Batch log
+batch_log_exporting_point_mask_analysis	Export de l'analyse point/masque…	Batch log
+batch_progress_predicting_object	Prédiction de l'objet {0} ({1}/{2})	Batch progress: object id, rank, count
+batch_progress_prediction_done	Prédiction terminée	Batch progress
+batch_progress_forward	Propagation avant	Batch progress: step name
+batch_progress_backward	Propagation arrière	Batch progress: step name
+batch_progress_point_forward	Propagation avant des points suivis	Batch progress: step name
+batch_progress_point_backward	Propagation arrière des points suivis	Batch progress: step name
+batch_progress_frame	{0}… (trame {1})	Batch progress: step name, frame index
+batch_error_step	Erreur — {0} : {1}	Batch error: step name, error detail
+batch_error_prediction	Erreur de prédiction (objet {0}) : {1}	Batch error: object id, error detail
+batch_error_no_objects	Aucun objet dans le fichier .volute	Batch error
+batch_error_no_images	Aucune image trouvée dans {0}	Batch error: folder
+batch_error_sam2_init	Échec de l'initialisation de SAM2	Batch error
+batch_error_state_predict	Export de l'état (prédiction) : {0}	Batch error: error detail
+batch_error_state_propagate	Export de l'état (propagation) : {0}	Batch error: error detail
+batch_error_images	Export des images : {0}	Batch error: error detail
+batch_error_centroids	Export des centres de gravité : {0}	Batch error: error detail
+batch_error_coordinates	Export des coordonnées : {0}	Batch error: error detail
+batch_error_contours	Export des coordonnées des contours : {0}	Batch error: error detail
+batch_error_hulls	Export des coordonnées des enveloppes : {0}	Batch error: error detail
+batch_error_tracked_points	Export des points suivis : {0}	Batch error: error detail
+batch_error_closest_points	Export des points de masque les plus proches : {0}	Batch error: error detail
+batch_error_point_mask_analysis	Export de l'analyse point/masque : {0}	Batch error: error detail
+batch_error_unexpected	Erreur inattendue : {0}	Batch error: error detail
+batch_warning_frame_count_mismatch	Nombre de trames différent pour les points suivis : {0} importée(s), {1} dans le dossier	Batch warning
+batch_warning_no_filename_match	Aucun des noms de fichiers importés ne correspond au dossier d'images	Batch warning
+batch_warning_filenames_unmatched	{0} nom(s) de fichier importé(s) sans correspondance, ignoré(s)	Batch warning
+batch_warning_out_of_bounds	Points importés hors de l'image pour : {0}	Batch warning: point names
+batch_warning_tracked_points_skipped	Import des points suivis ignoré : {0}	Batch warning: error detail
 batch_col_tracked_points_file	Fichier de points suivis	Table column header
 batch_browse_tracked_points	Parcourir points suivis…	Button text
 

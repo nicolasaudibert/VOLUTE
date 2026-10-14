@@ -20,7 +20,8 @@ from .dialogs import localized_question
 # (dotted key, tab key, label key, kind, options)
 #   bool    — checkbox
 #   int     — spin box, options = (minimum, maximum)
-#   choice  — combo box over fixed values, options = (value, …)
+#   choice  — combo box over fixed values, options = ((value, label key), …);
+#             the label is shown, the value is what the file stores
 #   language/model — combo box filled at runtime
 #   path    — line edit with a Browse button
 SETTINGS_FIELDS = [
@@ -29,12 +30,17 @@ SETTINGS_FIELDS = [
     ('models.default_model',           'interface', 'settings_default_model',       'model',    None),
     ('ui.show_image_filename',         'interface', 'settings_show_image_filename', 'bool',     None),
     ('ui.native_file_dialogs',         'interface', 'settings_native_dialogs',      'bool',     None),
-    ('ui.import_confirmation_default', 'interface', 'settings_import_confirmation', 'choice',   ('yes', 'no')),
+    ('ui.import_confirmation_default', 'interface', 'settings_import_confirmation', 'choice',   (('yes', 'yes'), ('no', 'no'))),
     ('ui.progress_details_font_size',  'interface', 'settings_progress_font',       'int',      (6, 32)),
-    ('ui.progress_animation_pacing',   'interface', 'settings_animation_pacing',    'choice',   ('file', 'progress')),
+    ('ui.progress_animation_pacing',   'interface', 'settings_animation_pacing',    'choice',   (('file', 'settings_pacing_file'),
+                                                                                                 ('progress', 'settings_pacing_progress'))),
 
-    ('export.coordinates_format',      'export',    'settings_coordinates_format',  'choice',   ('json', 'csv', 'pickle')),
-    ('export.centroids_format',        'export',    'settings_centroids_format',    'choice',   ('excel', 'csv', 'json')),
+    ('export.coordinates_format',      'export',    'settings_coordinates_format',  'choice',   (('json', 'settings_format_json'),
+                                                                                                 ('csv', 'settings_format_csv'),
+                                                                                                 ('pickle', 'settings_format_pickle'))),
+    ('export.centroids_format',        'export',    'settings_centroids_format',    'choice',   (('excel', 'settings_format_excel'),
+                                                                                                 ('csv', 'settings_format_csv'),
+                                                                                                 ('json', 'settings_format_json'))),
     ('export.image_quality',           'export',    'settings_image_quality',       'int',      (1, 100)),
 
     ('performance.image_cache_size',   'tools',     'settings_cache_size',          'int',      (0, 100000)),
@@ -124,8 +130,8 @@ class SettingsDialog(QDialog):
             return widget, widget
         if kind == 'choice':
             widget = QComboBox()
-            for value in options:
-                widget.addItem(value, value)
+            for value, value_label_key in options:
+                widget.addItem(self.localization.get_text(value_label_key), value)
             return widget, widget
         if kind == 'language':
             widget = QComboBox()

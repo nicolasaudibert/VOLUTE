@@ -1,0 +1,4 @@
+# Windows batch files keep the CRLF line endings they are stored with: cmd.exe
+# can misread labels in a file with bare LF endings, and no git setting or
+# archive download should convert them
+*.bat -text

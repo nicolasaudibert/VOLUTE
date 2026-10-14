@@ -10,9 +10,9 @@ A PyQt5 desktop application for interactive and batch video segmentation and poi
 
 ### Model Support
 - **SAM2** (standard): all `sam2.1_hiera_*` checkpoints
-- **MedSAM2**: `MedSAM2_latest.pt` and domain-specific variants (US Heart, MRI Liver Lesion, CT Lesion)
+- **MedSAM2**: `MedSAM2_latest.pt` and domain-specific variants (US Heart, MRI Liver Lesion, CT Lesion). MedSAM2 is meant to be prompted with a box, as its authors use it; positive or negative points then refine the mask, while points alone rarely give a usable one
 - **SAM2++**: unified tracking at mask, bounding-box, and point granularity; currently supported modes are **mask** (drop-in compatible with SAM2) and **point** (tracked point trajectories)
-- Automatic model type detection from checkpoint filename
+- Model family taken from the startup chooser or `--model`; when `--checkpoint` is given without `--model`, inferred from the checkpoint alone — `MedSAM2` in its file name, or a parent folder named `SAM2-Plus/` — so the directories further up its path never matter
 - Model name displayed in window title after loading; for SAM2++, the active sub-mode (Mask mode / Point tracking mode) is also shown, localized and rebuilt automatically on language change
 
 ### Extracting Frames from a Video
@@ -43,9 +43,9 @@ A third way to define a mask, combinable with the points above: an optional boun
 - One box per object and frame. Prompt order is irrelevant — points may be placed before or after the box
 - No box means prediction runs on the whole frame, exactly as before
 - The box is displayed as a dashed rectangle in the object's mask color, for every selected object
-- **The box is a soft prompt**: SAM2 receives it alongside the points and is not geometrically constrained by it. Points outside the box are *not* discarded — they contradict it. Two guards follow from this:
-  - drawing a box that excludes existing points reports how many positive and negative points it contradicts, and offers to delete them — a single Ctrl/⌘+Z then restores both the previous box and the deleted points
-  - adding a point outside an existing box asks for confirmation, with a session-only *Don't ask again* checkbox
+- **The box is a soft prompt**: SAM2 receives it alongside the points and is not geometrically constrained by it. Points outside the box are *not* discarded: a positive one contradicts it, while a negative one agrees with it, marking an area to leave out where the mask spills over the box. Two guards follow from this:
+  - drawing a box that excludes existing points reports how many positive and negative points it leaves outside, saying that the positive ones contradict it and that the negative ones, which agree with it, may no longer be needed, and offers to delete them — a single Ctrl/⌘+Z then restores both the previous box and the deleted points
+  - adding a point outside an existing box asks for confirmation, with a session-only *Don't ask again* checkbox; the message differs for a positive point, which contradicts the box, and a negative one, which does not
 - **Box on a frame with an imported mask**: a box and an imported mask are competing conditioning inputs, so a cancelable warning explains that the next prediction will replace the imported mask, with an option to delete that mask right away. The reverse case — importing a mask onto an object/frame that already has a box — asks the same question once for the whole import
 - A box added to an already-tracked frame counts as a correction once a prediction has used it: **Re-propagate from this frame…** becomes available then, not at the moment the box is drawn (the box only reaches SAM2 at the next prediction)
 - Strict confinement of the resulting mask to the box is available as an option — see Mask Prediction and Propagation
@@ -86,7 +86,7 @@ For objects hard to segment from points alone, a pre-composed external binary ma
 - **Multi-frame import**: selecting several mask files at once matches them to frames by original filename against the current image folder, mirroring the filename-matching approach used for tracked-point import; unmatched filenames are skipped with a warning
 - Imported masks are stored exactly like predicted ones (`object_manager.store_mask`) — centroid, hull, and contour recomputation, and display, all follow automatically with no separate code path
 - **Point refinement before propagation**: adding a positive/negative point to a frame that already has an imported mask (and no prior points) automatically resends the stored mask to SAM2 immediately before the point, since SAM2 would otherwise silently discard it. This is fully automatic — no extra UI action needed
-- **Point refinement after propagation, with optional bounded re-propagation**: a correction point can be added to any already-tracked frame through the ordinary point-add flow, which SAM2 treats natively as a correction. The **Re-propagate from this frame…** button (Prediction tab) becomes enabled once such a correction has been made on the currently selected object/frame, and opens a small dialog with two optional integer fields (forward/backward span in frames, 0 = unbounded) before re-running propagation for that object only, without resetting the rest of the session
+- **Point refinement after propagation, with optional bounded re-propagation**: a correction point can be added to any already-tracked frame through the ordinary point-add flow, which SAM2 treats natively as a correction. In mask mode the frame then becomes a conditioning frame (SAM2's `add_all_frames_to_correct_as_cond`, which VOLUTE turns on), so that a propagation starting from it keeps the correction. The **Re-propagate from this frame…** button (Prediction tab) becomes enabled once such a correction has been made on the currently selected object/frame, and opens a small dialog with two optional integer fields (forward/backward span in frames, 0 = unbounded) before re-running propagation for that object only, without resetting the rest of the session
 - Imported masks can be persisted in `.volute` project files, unlike predicted ones: a dialog at save time offers to include them, and a reloaded project re-registers them with SAM2 as conditioning (see Project Data Management)
 
 ### GIMP-Assisted Mask Editing (mask mode only)
@@ -310,13 +310,13 @@ Processing options:
 
 | Option | Default |
 |---|---|
-| Propagate masks | ✓ |
+| Propagate masks (**Propagate points** in SAM2++ point tracking mode) | ✓ |
 | Export masked images | ✓ |
 | Export centroids | ✓ |
 | Export mask coordinates | ✓ |
 | Export hull coordinates | ✗ |
 | Export contour coordinates | ✗ |
-| Export tracked points (point mode) | ✗ |
+| Export tracked points | ✗ — enabled only in SAM2++ point tracking mode |
 | Export inference state after prediction | ✗ |
 | Export inference state after propagation | ✗ |
 | Background opacity slider | 100 % — enabled only when Export masked images is ticked |
@@ -350,7 +350,7 @@ Import and validation of tracked points happens automatically per item (via the 
       *.jpg
     <folder_name>_centroids.xlsx
     <folder_name>_coordinates.json
-    <folder_name>_tracked_points.xlsx        (point mode)
+    <folder_name>_tracked_points.xlsx        (optional, point mode)
     <folder_name>_closest_mask_points.xlsx   (optional)
     <folder_name>_hull_coordinates.xlsx      (optional)
     <folder_name>_contour_coordinates.xlsx   (optional)
@@ -444,8 +444,10 @@ so the control panel's width stays stable until the user drags the splitter hand
 ### Startup Model Chooser
 Unless a model is given on the command line, the application opens a small dialog before loading anything heavy: the list of model configurations — the same eight the launchers offer — with three checkboxes.
 
+A configuration whose checkpoint or config file is missing stays in the list, greyed out and marked *not installed*, and cannot be chosen; its tooltip says how to get it — running the installation command again, MedSAM2 included, or, for a manual installation, [INSTALL.md](INSTALL.md#medsam2-setup-optional). The default model is preselected when installed, the first installed one otherwise. Files are looked for from the SAM2-Plus root: checkpoints under `checkpoints/`, configs inside the `sam2` package, or `sam2_plus` for SAM2++.
+
 - **Set as default** (unchecked) writes the highlighted model to `models.default_model`, which preselects it here and is the model used when this list is not shown
-- **Show this list at startup** (checked) writes `ui.show_model_dialog: false` when unchecked, so later launches start straight away with the default model. The tooltip points to the settings dialog, where the choice can be reversed
+- **Show this list at startup** (checked) writes `ui.show_model_dialog: false` when unchecked, so later launches start straight away with the default model — unless its files are missing, in which case the list opens anyway. The tooltip points to the settings dialog, where the choice can be reversed
 - **Debug mode** (unchecked) turns on verbose technical output for this session only — the console, or the log file when the application was started from a macOS bundle. Its persistent counterpart is `debug.enabled` in the settings
 
 Dismissing the dialog quits without loading a model. The model catalog lives in `model_dialog.py` and is the single source of truth for the configurations offered.
@@ -518,7 +520,7 @@ python tools/VOLUTE.py --checkpoint ./checkpoints/sam2.1_hiera_large.pt \
                          --config configs/sam2.1/sam2.1_hiera_l.yaml
 ```
 
-Platform-specific launcher scripts can be generated with `install_launchers_Unix_MacOS.sh` (macOS / Linux) or `install_launchers_windows.bat`, into `tools/launchers/`. Their one job is to move to the root of the installation before starting the GUI, which the application cannot do for itself: `volute.sh` names no model, so the startup chooser opens as usual, while the per-model scripts pass the model on the command line and skip it. The whole `launchers/` directory, its README included, is generated — re-run the script to refresh it, and keep it out of version control.
+Platform-specific launcher scripts can be generated with `install_launchers_Unix_MacOS.sh` (macOS / Linux) or `install_launchers_windows.bat`, into `tools/launchers/`. Their one job is to move to the root of the installation before starting the GUI, which the application cannot do for itself: `volute.sh` names no model, so the startup chooser opens as usual, while the per-model scripts pass the model on the command line and skip it. The Windows launchers also carry the full path of the environment's Python interpreter, found and checked when they are generated, and put the environment's directories on `PATH` the way activating it would: they therefore work by double-click with no conda environment activated, keep their window open when the application stops on an error, and come with a **VOLUTE** shortcut on the Desktop. The macOS/Linux scripts run whichever `python` is on `PATH`, so the environment must be active. The whole `launchers/` directory, its README included, is generated — re-run the script to refresh it, after moving the installation or recreating the environment, and keep it out of version control.
 
 ### macOS application bundle (optional)
 
@@ -545,7 +547,7 @@ The bundle only starts `tools/VOLUTE.py` from this installation, with the Python
 
 **Folder access.** An application launched from the Finder is subject to macOS privacy protection: it cannot read `~/Documents`, `~/Desktop` or `~/Downloads` without consent, and an installation under one of those otherwise fails at startup with `Operation not permitted`, before the GUI appears.
 
-macOS attributes such an access to the *executable* that performs it. A bundle whose executable is a shell script is therefore judged to be `/bin/bash` — a system binary with no claim on anyone's folders — and the read is denied outright, with no prompt shown and nothing to see but a window that never opens. The bundle produced here consequently ships a small **compiled** launcher, signed as part of the bundle, which runs `Contents/Resources/run.sh`; processes it starts inherit the bundle's identity, so the installation folder becomes readable. This requires a C compiler at generation time — the Xcode Command Line Tools (`xcode-select --install`). Without one, the script falls back to a script launcher and says so: the application then only starts if the installation sits outside the three protected folders.
+macOS attributes such an access to the *executable* that performs it. A bundle whose executable is a shell script is therefore judged to be `/bin/bash` — a system binary with no claim on anyone's folders — and the read is denied outright, with no prompt shown and nothing to see but a window that never opens. The bundle produced here consequently ships a small **compiled** launcher, signed as part of the bundle, which runs `Contents/Resources/run.sh`; processes it starts inherit the bundle's identity, so the installation folder becomes readable. Its source is `tools/macos_launcher/launcher.c`, compiled when the Xcode Command Line Tools are installed. Without them — the common case on a Mac nobody develops on — the universal binary (Apple Silicon and Intel) shipped beside the source is used instead, so no compiler is ever needed. The script checks for the Command Line Tools before calling `cc`, which is otherwise a stub that opens a dialog offering to install them. Only were that binary missing too would the script fall back to a script launcher, and say so: the application would then only start if the installation sat outside the three protected folders.
 
 The bundle is also ad-hoc signed (`codesign -s -`), so its identity is stable: an unsigned bundle gets a new one at every launch, and any permission granted to it is forgotten. Should access still be refused, add the bundle to *System Settings › Privacy & Security › Full Disk Access*, or move the installation outside the protected folders, where no permission is involved at all.
 
@@ -557,7 +559,7 @@ The bundle is also ad-hoc signed (`codesign -s -`), so its identity is stable: a
 
 Two independent numbers:
 
-- the **application** version, `__version__` in `volute/__init__.py` (currently `0.9`) — the single source of truth, reported by `QApplication` and stamped into the macOS bundle;
+- the **application** version, `__version__` in `volute/__init__.py` — the single source of truth, reported by `QApplication` and stamped into the macOS bundle, with its history in `CHANGELOG.md`;
 - the **`.volute` file format** version, `ProjectStateManager.PROJECT_VERSION` (currently `1.1`), written into every project file and checked on import against `SUPPORTED_VERSIONS`. It moves only when the schema changes, not with each release: `1.0` is the original format, `1.1` adds bounding boxes and optional imported masks. Both load without warning; anything else warns and then imports on a best-effort basis, since the reader ignores keys it does not know.
 
 ### `.volute` — Project Data
@@ -565,6 +567,25 @@ Gzip-compressed pickle containing object definitions (names, colors, markers), p
 
 ### `.voluteinf` — SAM2 Inference State
 Gzip-compressed serialization of the SAM2 internal inference state. Marked **experimental**: portability across different systems, devices, or model versions is not guaranteed.
+
+---
+
+## Documentation Site
+
+The pages of `docs/` are published as a site, at **https://nicolasaudibert.github.io/VOLUTE/**: English at the root, French under `/fr/`. A translation sits next to its English page, with a `.fr.md` suffix; a page without one appears in English on the French site. Links to files outside `docs/` are full GitHub addresses, and in-page anchors are GitHub's, so the pages read the same on GitHub and on the site.
+
+`build_docs.py` builds both languages with [Zensical](https://zensical.org/): `mkdocs.yml` configures the English site, `mkdocs.fr.yml` the French one, and `overrides/` holds the templates replaced for the language selector and the logo. The build is strict: a broken link or anchor stops it. `.github/workflows/docs.yml` runs it and publishes the result whenever a push to `main` changes one of these files.
+
+To preview the site, from the root of the repository, preferably in a Python environment of its own:
+
+```bash
+pip install -r requirements-docs.txt
+python build_docs.py --serve
+```
+
+then open http://localhost:8000/VOLUTE/. The preview does not follow edits: run the command again after changing a page.
+
+The tutorial, in `docs/tutorial/`, works on a short excerpt of the Nancy real-time MRI corpus, `docs/tutorial/nancy_P1_S1_excerpt.mp4`. Two scripts in `tutorial/` keep it reproducible: `make_excerpt.py` builds the excerpt from the original data on figshare, fetching only the frames it needs, and `capture_screenshots.py` drives VOLUTE through the tutorial's steps, in English and French, and saves the screenshots into `docs/tutorial/images/`. The latter runs in VOLUTE's own environment, with SAM2.1 Large, and leaves the settings untouched; run it again after a change to the interface.
 
 ---
 

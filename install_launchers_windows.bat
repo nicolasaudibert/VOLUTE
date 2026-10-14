@@ -1,163 +1,216 @@
 @echo off
-REM Installation script for VOLUTE launchers (Windows)
-REM Generates Windows launcher scripts for different model configurations
+REM Generates the VOLUTE launchers for Windows, one per model configuration plus
+REM one that asks, and a VOLUTE shortcut on the Desktop.
+REM
+REM The launchers run the Python interpreter of the environment VOLUTE is
+REM installed in, by its full path, so they work by double-click with no conda
+REM environment activated. Re-run this script after moving the installation or
+REM recreating the environment.
+REM
+REM Usage, by double-click or from a Command Prompt:
+REM   tools\install_launchers_windows.bat [path\to\python.exe]
+REM Without an argument the interpreter is looked for in the active conda
+REM environment, then on PATH, then as a sam2_plus environment of Miniforge,
+REM Miniconda or Anaconda; the first one that can import SAM2, PyTorch and
+REM PyQt5 is kept.
 
-setlocal enabledelayedexpansion
+setlocal
 
 echo ======================================================================
 echo VOLUTE Launchers Installation (Windows)
 echo ======================================================================
 echo.
 
-REM Check we're in SAM2 directory
-if not exist "tools" (
-    echo Error: This script must be run from the root of your SAM2 installation
-    pause
-    exit /b 1
-)
+REM Work from the root of the installation, wherever the script is started from
+cd /d "%~dp0.."
+if not exist "tools\VOLUTE.py" goto :not_root
+if not exist "sam2" goto :not_root
 
-if not exist "sam2" (
-    echo Error: This script must be run from the root of your SAM2 installation
-    pause
-    exit /b 1
-)
+set "PYTHON_EXE="
+if "%~1"=="" goto :search
+call :try_python "%~1"
+if defined PYTHON_EXE goto :python_found
+echo Error: "%~1" cannot import SAM2, PyTorch and PyQt5.
+echo Give the python.exe of the environment VOLUTE is installed in.
+goto :fail
 
-REM Create launchers directory
+:search
+echo Looking for the Python interpreter of the VOLUTE environment...
+if defined CONDA_PREFIX call :try_python "%CONDA_PREFIX%\python.exe"
+if defined PYTHON_EXE goto :python_found
+REM The Microsoft Store placeholder under WindowsApps is not an interpreter
+for /f "delims=" %%P in ('where python 2^>nul ^| findstr /v /i "WindowsApps"') do (
+    if not defined PYTHON_EXE call :try_python "%%P"
+)
+if defined PYTHON_EXE goto :python_found
+for %%R in ("%USERPROFILE%\miniforge3" "%USERPROFILE%\miniconda3" "%USERPROFILE%\anaconda3" "%LOCALAPPDATA%\miniforge3" "%LOCALAPPDATA%\miniconda3" "%LOCALAPPDATA%\anaconda3" "%ProgramData%\miniforge3" "%ProgramData%\miniconda3" "%ProgramData%\anaconda3") do (
+    if not defined PYTHON_EXE call :try_python "%%~R\envs\sam2_plus\python.exe"
+)
+if not defined PYTHON_EXE call :try_python "%USERPROFILE%\.conda\envs\sam2_plus\python.exe"
+if defined PYTHON_EXE goto :python_found
+echo Error: no Python interpreter able to import SAM2, PyTorch and PyQt5 was found.
+echo Run this script from a Miniforge or Anaconda Prompt in which the VOLUTE
+echo environment is activated, or give its interpreter as argument:
+echo   tools\install_launchers_windows.bat C:\path\to\env\python.exe
+goto :fail
+
+:python_found
+for %%I in ("%PYTHON_EXE%") do set "ENV_DIR=%%~dpI"
+echo Interpreter: %PYTHON_EXE%
+echo.
+
 set "LAUNCHERS_DIR=tools\launchers"
 if not exist "%LAUNCHERS_DIR%" mkdir "%LAUNCHERS_DIR%"
-echo Created directory: %LAUNCHERS_DIR%
+echo Generating launcher scripts in %LAUNCHERS_DIR%...
 echo.
 
-echo Generating launcher scripts...
+call :make_launcher volute "VOLUTE - asks which model to use" ""
+call :make_launcher sam2_default "SAM2 default model, Hiera Large" "--model sam2"
+call :make_launcher sam2_small "SAM2 small model, faster" "--config configs\sam2.1\sam2.1_hiera_s.yaml --checkpoint checkpoints\sam2.1_hiera_small.pt"
+call :make_launcher medsam2_general "MedSAM2 general medical model" "--model medsam2"
+call :make_launcher medsam2_ct "MedSAM2 CT lesion model" "--checkpoint checkpoints\MedSAM2_CTLesion.pt --config configs\medsam2_configs\sam2.1_hiera_t512.yaml"
+call :make_launcher medsam2_heart "MedSAM2 heart ultrasound model" "--checkpoint checkpoints\MedSAM2_US_Heart.pt --config configs\medsam2_configs\sam2.1_hiera_t512.yaml"
+call :make_launcher medsam2_liver "MedSAM2 liver MRI model" "--checkpoint checkpoints\MedSAM2_MRI_LiverLesion.pt --config configs\medsam2_configs\sam2.1_hiera_t512.yaml"
+call :make_launcher sam2plus_mask "SAM2++ mask segmentation mode" "--model sam2plus --task mask"
+call :make_launcher sam2plus_point "SAM2++ point tracking mode" "--model sam2plus --task point"
 echo.
 
-REM Create volute.bat - no model named, so the application asks
-echo @echo off> "%LAUNCHERS_DIR%\volute.bat"
-echo REM VOLUTE - asks which model to use>> "%LAUNCHERS_DIR%\volute.bat"
-echo cd /d "%%~dp0\..\..">> "%LAUNCHERS_DIR%\volute.bat"
-echo python tools\VOLUTE.py %%*>> "%LAUNCHERS_DIR%\volute.bat"
-echo   + Created: volute.bat
-
-REM Create sam2_default.bat
-echo @echo off> "%LAUNCHERS_DIR%\sam2_default.bat"
-echo REM SAM2 default model (Hiera Large)>> "%LAUNCHERS_DIR%\sam2_default.bat"
-echo cd /d "%%~dp0\..\..">> "%LAUNCHERS_DIR%\sam2_default.bat"
-echo python tools\VOLUTE.py --model sam2 %%*>> "%LAUNCHERS_DIR%\sam2_default.bat"
-echo   + Created: sam2_default.bat
-
-REM Create sam2_small.bat
-echo @echo off> "%LAUNCHERS_DIR%\sam2_small.bat"
-echo REM SAM2 small model (faster)>> "%LAUNCHERS_DIR%\sam2_small.bat"
-echo cd /d "%%~dp0\..\..">> "%LAUNCHERS_DIR%\sam2_small.bat"
-echo python tools\VOLUTE.py --config configs\sam2.1\sam2.1_hiera_s.yaml --checkpoint checkpoints\sam2.1_hiera_small.pt %%*>> "%LAUNCHERS_DIR%\sam2_small.bat"
-echo   + Created: sam2_small.bat
-
-REM Create medsam2_general.bat
-echo @echo off> "%LAUNCHERS_DIR%\medsam2_general.bat"
-echo REM MedSAM2 general medical model>> "%LAUNCHERS_DIR%\medsam2_general.bat"
-echo cd /d "%%~dp0\..\..">> "%LAUNCHERS_DIR%\medsam2_general.bat"
-echo python tools\VOLUTE.py --model medsam2 %%*>> "%LAUNCHERS_DIR%\medsam2_general.bat"
-echo   + Created: medsam2_general.bat
-
-REM Create medsam2_ct.bat
-echo @echo off> "%LAUNCHERS_DIR%\medsam2_ct.bat"
-echo REM MedSAM2 CT lesion model>> "%LAUNCHERS_DIR%\medsam2_ct.bat"
-echo cd /d "%%~dp0\..\..">> "%LAUNCHERS_DIR%\medsam2_ct.bat"
-echo python tools\VOLUTE.py --checkpoint checkpoints\MedSAM2_CTLesion.pt --config configs\medsam2_configs\sam2.1_hiera_t512.yaml %%*>> "%LAUNCHERS_DIR%\medsam2_ct.bat"
-echo   + Created: medsam2_ct.bat
-
-REM Create medsam2_heart.bat
-echo @echo off> "%LAUNCHERS_DIR%\medsam2_heart.bat"
-echo REM MedSAM2 heart ultrasound model>> "%LAUNCHERS_DIR%\medsam2_heart.bat"
-echo cd /d "%%~dp0\..\..">> "%LAUNCHERS_DIR%\medsam2_heart.bat"
-echo python tools\VOLUTE.py --checkpoint checkpoints\MedSAM2_US_Heart.pt --config configs\medsam2_configs\sam2.1_hiera_t512.yaml %%*>> "%LAUNCHERS_DIR%\medsam2_heart.bat"
-echo   + Created: medsam2_heart.bat
-
-REM Create medsam2_liver.bat
-echo @echo off> "%LAUNCHERS_DIR%\medsam2_liver.bat"
-echo REM MedSAM2 liver MRI model>> "%LAUNCHERS_DIR%\medsam2_liver.bat"
-echo cd /d "%%~dp0\..\..">> "%LAUNCHERS_DIR%\medsam2_liver.bat"
-echo python tools\VOLUTE.py --checkpoint checkpoints\MedSAM2_MRI_LiverLesion.pt --config configs\medsam2_configs\sam2.1_hiera_t512.yaml %%*>> "%LAUNCHERS_DIR%\medsam2_liver.bat"
-echo   + Created: medsam2_liver.bat
-
-REM Create sam2plus_mask.bat
-echo @echo off> "%LAUNCHERS_DIR%\sam2plus_mask.bat"
-echo REM SAM2++ mask segmentation mode>> "%LAUNCHERS_DIR%\sam2plus_mask.bat"
-echo cd /d "%%~dp0\..\..">> "%LAUNCHERS_DIR%\sam2plus_mask.bat"
-echo python tools\VOLUTE.py --model sam2plus --task mask %%*>> "%LAUNCHERS_DIR%\sam2plus_mask.bat"
-echo   + Created: sam2plus_mask.bat
-
-REM Create sam2plus_point.bat
-echo @echo off> "%LAUNCHERS_DIR%\sam2plus_point.bat"
-echo REM SAM2++ point tracking mode>> "%LAUNCHERS_DIR%\sam2plus_point.bat"
-echo cd /d "%%~dp0\..\..">> "%LAUNCHERS_DIR%\sam2plus_point.bat"
-echo python tools\VOLUTE.py --model sam2plus --task point %%*>> "%LAUNCHERS_DIR%\sam2plus_point.bat"
-echo   + Created: sam2plus_point.bat
-
-echo.
-
-REM Create README
-(
-echo # VOLUTE Quick Launch Scripts
-echo.
-echo Generated by `tools\install_launchers_windows.bat` - re-run it to refresh them.
-echo Each script moves to the root of the installation before starting the GUI,
-echo which is the one thing the application cannot do for itself.
-echo.
-echo ## Available Launchers
-echo.
-echo - **volute.bat**: starts the application without naming a model, so it asks
-echo   which one to use - or goes straight to the default model when that dialog
-echo   has been turned off in the settings
-echo.
-echo Naming a model on the command line skips that dialog, which is what the
-echo remaining launchers do:
-echo.
-echo ### SAM2 Models
-echo - **sam2_default.bat**: SAM2 default model ^(Hiera Large^) - Best accuracy
-echo - **sam2_small.bat**: SAM2 small model - Faster processing
-echo.
-echo ### MedSAM2 Models
-echo - **medsam2_general.bat**: MedSAM2 general medical imaging model
-echo - **medsam2_ct.bat**: MedSAM2 specialized for CT lesion segmentation
-echo - **medsam2_heart.bat**: MedSAM2 specialized for heart ultrasound
-echo - **medsam2_liver.bat**: MedSAM2 specialized for liver MRI lesions
-echo.
-echo ### SAM2++ Models
-echo - **sam2plus_mask.bat**: SAM2++ mask segmentation mode ^(drop-in SAM2 replacement^)
-echo - **sam2plus_point.bat**: SAM2++ point tracking mode ^(tracks points across frames^)
-echo.
-echo ## Usage
-echo.
-echo ```batch
-echo cd C:\path\to\sam2\tools\launchers
-echo volute.bat
-echo sam2plus_point.bat
-echo.
-echo REM With debug mode
-echo sam2plus_point.bat --debug
-echo ```
-echo.
-echo ## Troubleshooting
-echo.
-echo **Python not found:**
-echo Make sure the correct conda environment is activated.
-echo SAM2++ requires its own environment ^(sam2_plus^); see INSTALL.md for details.
-) > "%LAUNCHERS_DIR%\README.md"
+REM One redirection per line: some cmd implementations ignore a redirected block
+set "README=%LAUNCHERS_DIR%\README.md"
+>"%README%" echo # VOLUTE Quick Launch Scripts
+>>"%README%" echo.
+>>"%README%" echo Generated by `tools\install_launchers_windows.bat` - re-run it to refresh them,
+>>"%README%" echo after moving the installation or recreating the Python environment.
+>>"%README%" echo.
+>>"%README%" echo Each launcher runs the environment's Python interpreter by its full path,
+>>"%README%" echo recorded below, so it works by double-click with no conda environment
+>>"%README%" echo activated. Should the application stop on an error, the launcher's window
+>>"%README%" echo stays open to show the message.
+>>"%README%" echo.
+>>"%README%" echo ## Available Launchers
+>>"%README%" echo.
+>>"%README%" echo - **volute.bat**: starts the application without naming a model, so it asks
+>>"%README%" echo   which one to use - or goes straight to the default model when that dialog
+>>"%README%" echo   has been turned off in the settings. The VOLUTE shortcut on the Desktop
+>>"%README%" echo   opens this one.
+>>"%README%" echo.
+>>"%README%" echo Naming a model on the command line skips that dialog, which is what the
+>>"%README%" echo remaining launchers do:
+>>"%README%" echo.
+>>"%README%" echo ### SAM2 Models
+>>"%README%" echo - **sam2_default.bat**: SAM2 default model (Hiera Large) - Best accuracy
+>>"%README%" echo - **sam2_small.bat**: SAM2 small model - Faster processing
+>>"%README%" echo.
+>>"%README%" echo ### MedSAM2 Models
+>>"%README%" echo - **medsam2_general.bat**: MedSAM2 general medical imaging model
+>>"%README%" echo - **medsam2_ct.bat**: MedSAM2 specialized for CT lesion segmentation
+>>"%README%" echo - **medsam2_heart.bat**: MedSAM2 specialized for heart ultrasound
+>>"%README%" echo - **medsam2_liver.bat**: MedSAM2 specialized for liver MRI lesions
+>>"%README%" echo.
+>>"%README%" echo ### SAM2++ Models
+>>"%README%" echo - **sam2plus_mask.bat**: SAM2++ mask segmentation mode (drop-in SAM2 replacement)
+>>"%README%" echo - **sam2plus_point.bat**: SAM2++ point tracking mode (tracks points across frames)
+>>"%README%" echo.
+>>"%README%" echo ## Usage
+>>"%README%" echo.
+>>"%README%" echo Double-click a launcher, or run it from a Command Prompt to pass options:
+>>"%README%" echo.
+>>"%README%" echo ```batch
+>>"%README%" echo tools\launchers\sam2plus_point.bat --debug
+>>"%README%" echo ```
+>>"%README%" echo.
+>>"%README%" echo ## Troubleshooting
+>>"%README%" echo.
+>>"%README%" echo **The interpreter below no longer exists:** the environment was moved or
+>>"%README%" echo recreated. Run `tools\install_launchers_windows.bat` again.
+>>"%README%" echo.
+>>"%README%" echo Interpreter: `%PYTHON_EXE%`
 echo   + Created: README.md
+
+REM Desktop shortcut to the launcher that asks for the model. Paths reach
+REM PowerShell through the environment, so none needs quoting on its command line.
+REM PowerShell writes the result file only once the shortcut exists: its exit
+REM code alone does not tell, since a statement that fails does not always end
+REM the command with an error.
+set "SHORTCUT_TARGET=%CD%\%LAUNCHERS_DIR%\volute.bat"
+set "SHORTCUT_DIR=%CD%"
+set "SHORTCUT_ICON=%CD%\tools\volute\resources\icon.ico"
+set "SHORTCUT_RESULT=%TEMP%\volute_shortcut_%RANDOM%.txt"
+set "SHORTCUT_OK="
+if exist "%SHORTCUT_RESULT%" del "%SHORTCUT_RESULT%"
+powershell -NoProfile -Command "$desktop = [Environment]::GetFolderPath('Desktop'); $link = (New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $desktop 'VOLUTE.lnk')); $link.TargetPath = $env:SHORTCUT_TARGET; $link.WorkingDirectory = $env:SHORTCUT_DIR; if (Test-Path $env:SHORTCUT_ICON) { $link.IconLocation = $env:SHORTCUT_ICON }; $link.Description = 'VOLUTE'; $link.Save(); if (Test-Path -LiteralPath $link.FullName) { Set-Content -LiteralPath $env:SHORTCUT_RESULT -Value 'ok' }" >nul 2>&1
+if exist "%SHORTCUT_RESULT%" goto :shortcut_created
+echo   ! The Desktop shortcut could not be created; use tools\launchers\volute.bat
+goto :shortcut_done
+:shortcut_created
+del "%SHORTCUT_RESULT%"
+set "SHORTCUT_OK=1"
+echo   + Created: VOLUTE shortcut on the Desktop
+:shortcut_done
 
 echo.
 echo ======================================================================
 echo Installation Complete!
 echo ======================================================================
 echo.
-echo Launchers installed in: %LAUNCHERS_DIR%
-echo.
-echo Usage:
-echo   cd tools\launchers
-echo   volute.bat           (choose the model in the application)
-echo   sam2plus_point.bat --debug
-echo.
-echo See README.md in launchers\ for complete documentation
+if defined SHORTCUT_OK echo Double-click the VOLUTE shortcut on the Desktop, or a launcher in
+if not defined SHORTCUT_OK echo Double-click a launcher in
+echo %LAUNCHERS_DIR%. See README.md there for the list.
 echo.
 pause
+exit /b 0
+
+:not_root
+echo Error: this script must stay in the tools directory of the SAM2-Plus
+echo installation, next to VOLUTE.py.
+goto :fail
+
+:fail
+echo.
+pause
+exit /b 1
+
+REM ----------------------------------------------------------------------
+REM :try_python path - sets PYTHON_EXE to path when that interpreter can
+REM import SAM2, PyTorch and PyQt5. The test runs with the environment's
+REM directories on PATH, as the launchers do, since packages installed by conda
+REM keep their DLLs there.
+:try_python
+if not exist "%~1" exit /b 0
+setlocal
+set "ENV_DIR=%~dp1"
+set "PATH=%ENV_DIR%;%ENV_DIR%Library\mingw-w64\bin;%ENV_DIR%Library\usr\bin;%ENV_DIR%Library\bin;%ENV_DIR%Scripts;%PATH%"
+"%~1" -c "import sam2, torch, PyQt5" >nul 2>&1
+if errorlevel 1 (
+    endlocal
+    exit /b 0
+)
+endlocal & set "PYTHON_EXE=%~f1"
+exit /b 0
+
+REM ----------------------------------------------------------------------
+REM :make_launcher name "description" "arguments" - writes tools\launchers\name.bat
+REM starting VOLUTE.py with the given arguments through PYTHON_EXE, with the
+REM environment's directories put on PATH the way activating it would.
+:make_launcher
+set "LAUNCHER=%LAUNCHERS_DIR%\%~1.bat"
+>"%LAUNCHER%" echo @echo off
+>>"%LAUNCHER%" echo REM %~2
+>>"%LAUNCHER%" echo REM Generated by tools\install_launchers_windows.bat; re-run it to refresh.
+>>"%LAUNCHER%" echo setlocal
+>>"%LAUNCHER%" echo set "VOLUTE_PYTHON=%PYTHON_EXE%"
+>>"%LAUNCHER%" echo set "VOLUTE_ENV=%ENV_DIR%"
+>>"%LAUNCHER%" echo set "PATH=%%VOLUTE_ENV%%;%%VOLUTE_ENV%%Library\mingw-w64\bin;%%VOLUTE_ENV%%Library\usr\bin;%%VOLUTE_ENV%%Library\bin;%%VOLUTE_ENV%%Scripts;%%PATH%%"
+>>"%LAUNCHER%" echo if not exist "%%VOLUTE_PYTHON%%" goto :missing
+>>"%LAUNCHER%" echo cd /d "%%~dp0..\.."
+>>"%LAUNCHER%" echo "%%VOLUTE_PYTHON%%" tools\VOLUTE.py %~3 %%*
+>>"%LAUNCHER%" echo REM Keep the window open on an error, so the message can be read
+>>"%LAUNCHER%" echo if errorlevel 1 pause
+>>"%LAUNCHER%" echo exit /b
+>>"%LAUNCHER%" echo :missing
+>>"%LAUNCHER%" echo echo The Python interpreter this launcher was generated for no longer exists:
+>>"%LAUNCHER%" echo echo   %%VOLUTE_PYTHON%%
+>>"%LAUNCHER%" echo echo Run tools\install_launchers_windows.bat again.
+>>"%LAUNCHER%" echo pause
+echo   + Created: %~1.bat
+exit /b 0

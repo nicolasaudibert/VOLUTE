@@ -11,6 +11,19 @@ import copy
 from .history_manager import Command
 from .dialogs import localize_standard_buttons
 
+
+def ctrl_held(event):
+    """Whether Ctrl was down during a Matplotlib mouse event.
+
+    Read from the event's modifiers, which reflect the keyboard at the time of
+    the click. event.key only follows the key presses the canvas itself
+    received: with the focus elsewhere, on a tab or a button just clicked, it
+    stays None while Ctrl is held. On macOS the modifier named 'ctrl' is the
+    Control key, the Command key being 'cmd'.
+    """
+    return 'ctrl' in event.modifiers
+
+
 class EventManager:
     """Manages user events and interactions"""
 
@@ -150,7 +163,7 @@ class EventManager:
         # the currently selected reference point on the current frame; right-click
         # and Ctrl+click are ignored (no negative equivalent for reference points).
         if self.main_window.active_tab_index == self.main_window.TAB_REF_POINTS:
-            if event.button != 1 or event.key == 'control':
+            if event.button != 1 or ctrl_held(event):
                 return
             rpm = getattr(self.main_window, 'ref_point_manager', None)
             if not rpm:
@@ -184,7 +197,7 @@ class EventManager:
         # bounding box. Left button only; right-click and Ctrl+click ignored.
         define_box_radio = self.ui_manager.get_control('define_box_radio')
         if define_box_radio and define_box_radio.isChecked():
-            if event.button != 1 or event.key == 'control':
+            if event.button != 1 or ctrl_held(event):
                 return
             if len(self.main_window.object_manager.selected_object_ids) > 1:
                 self.main_window.ui_manager.show_message(
@@ -225,7 +238,7 @@ class EventManager:
                 return
             obj_id = self.main_window.object_manager.current_object_id
 
-            is_ctrl_click = (event.button == 1 and event.key == 'control')
+            is_ctrl_click = (event.button == 1 and ctrl_held(event))
             is_right_click = (event.button == 3)
 
             if is_right_click or is_ctrl_click:
@@ -240,7 +253,7 @@ class EventManager:
             if (box is not None
                     and not self.main_window.object_manager.point_in_box(box, x, y)
                     and not self._dont_ask_point_outside_box):
-                if not self._confirm_point_outside_box():
+                if not self._confirm_point_outside_box(point_type):
                     return
 
             before = copy.deepcopy(self.main_window.object_manager.object_points[obj_id][frame_idx])
@@ -249,7 +262,7 @@ class EventManager:
 
             if self.main_window.debug_mode:
                 print(f"Added {point_type} point at ({x:.3f}, {y:.3f}) "
-                      f"[button={event.button}, key={event.key}]")
+                      f"[button={event.button}, modifiers={sorted(event.modifiers)}]")
 
             # Update display
             self.main_window.display_manager.update_display(maintain_global_zoom=True)
@@ -485,15 +498,18 @@ class EventManager:
         result = box.exec_()
         return result == QMessageBox.Yes, checkbox.isChecked()
 
-    def _confirm_point_outside_box(self):
+    def _confirm_point_outside_box(self, point_type):
         """Confirm before adding a point outside the object's box on this frame,
-        with a 'don't ask again' checkbox (session-only persistence)."""
+        with a 'don't ask again' checkbox (session-only persistence). A positive
+        point there contradicts the box; a negative one agrees with it, and the
+        message says so."""
         from PyQt5.QtWidgets import QMessageBox, QCheckBox
         loc = self.main_window.localization
         box = QMessageBox(self.main_window)
         box.setIcon(QMessageBox.Question)
         box.setWindowTitle(loc.get_text("confirmation"))
-        box.setText(loc.get_text("point_outside_box_confirm"))
+        box.setText(loc.get_text("point_outside_box_confirm_negative" if point_type == 'negative'
+                                 else "point_outside_box_confirm"))
         box.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
         localize_standard_buttons(box, loc)
         checkbox = QCheckBox(loc.get_text("dont_ask_again"))

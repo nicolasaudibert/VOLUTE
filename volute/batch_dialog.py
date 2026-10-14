@@ -89,7 +89,8 @@ class BatchDialog(QDialog):
         t1.addWidget(self._build_table_group())
         t1.addWidget(self._build_options_group())
         t1.addLayout(self._build_output_row())
-        self.tab_widget.addTab(tab1, self.loc.get_text("batch_tab_items"))
+        # A single "&" in a tab label marks a shortcut, and is not shown
+        self.tab_widget.addTab(tab1, self.loc.get_text("batch_tab_items").replace("&", "&&"))
 
         # Tab 2 — Reference Points
         tab2 = QWidget()
@@ -127,10 +128,7 @@ class BatchDialog(QDialog):
         hh.setSectionResizeMode(self.COL_REF_FRAME, QHeaderView.ResizeToContents)
         hh.setSectionResizeMode(self.COL_TRACKED_POINTS, QHeaderView.Stretch)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.table.setToolTip(
-            "Double-click a cell to edit directly.\n"
-            "Leave 'Ref Frame' empty to use the first frame with points."
-        )
+        self.table.setToolTip(self.loc.get_text("batch_table_tooltip"))
         v.addWidget(self.table)
 
         # Row-management buttons
@@ -163,9 +161,12 @@ class BatchDialog(QDialog):
         group = QGroupBox(self.loc.get_text("batch_options"))
         grid = QGridLayout(group)
 
+        point_mode = self.main_window.is_point_mode()
+
         # Checkboxes  (label, attribute, default, row, col)
         checks = [
-            (self.loc.get_text("batch_opt_propagate"),        'opt_propagate',            True,  0, 0),
+            (self.loc.get_text("batch_opt_propagate_points" if point_mode
+                               else "batch_opt_propagate"),   'opt_propagate',            True,  0, 0),
             (self.loc.get_text("batch_opt_export_images"),    'opt_export_images',        True,  0, 1),
             (self.loc.get_text("export_centroids"),           'opt_export_centroids',     True,  1, 0),
             (self.loc.get_text("export_coordinates"),         'opt_export_coords',        True,  1, 1),
@@ -173,12 +174,20 @@ class BatchDialog(QDialog):
             (self.loc.get_text("batch_opt_state_prop"),       'opt_export_state_prop',    False, 2, 1),
             (self.loc.get_text("batch_opt_export_hull"),      'opt_export_hull_coords',   False, 3, 0),
             (self.loc.get_text("batch_opt_export_contour"),   'opt_export_contour_coords', False, 3, 1),
+            (self.loc.get_text("export_tracked_points"),      'opt_export_tracked_points', False, 4, 0),
         ]
         for label, attr, default, row, col in checks:
             cb = QCheckBox(label)
             cb.setChecked(default)
             setattr(self, attr, cb)
             grid.addWidget(cb, row, col)
+
+        # Tracked points exist only with SAM2++ in point tracking mode
+        self.opt_export_tracked_points.setEnabled(point_mode)
+        if not point_mode:
+            self.opt_export_tracked_points.setToolTip(
+                self.loc.get_text("batch_opt_export_tracked_points_tooltip")
+            )
 
 
         # Hull smoothing (enabled only when export hull coords is checked)
@@ -196,7 +205,7 @@ class BatchDialog(QDialog):
         hs_layout.addWidget(self.hull_smoothing_slider)
         hs_layout.addWidget(self.hull_smoothing_label)
         hull_smooth_widget.setEnabled(False)
-        grid.addWidget(hull_smooth_widget, 4, 0, 1, 2)
+        grid.addWidget(hull_smooth_widget, 5, 0, 1, 2)
 
         self.opt_export_hull_coords.toggled.connect(hull_smooth_widget.setEnabled)
 
@@ -215,7 +224,7 @@ class BatchDialog(QDialog):
         cs_layout.addWidget(self.contour_smoothing_slider)
         cs_layout.addWidget(self.contour_smoothing_label)
         contour_smooth_widget.setEnabled(False)
-        grid.addWidget(contour_smooth_widget, 5, 0, 1, 2)
+        grid.addWidget(contour_smooth_widget, 6, 0, 1, 2)
 
         self.opt_export_contour_coords.toggled.connect(contour_smooth_widget.setEnabled)
 
@@ -233,7 +242,7 @@ class BatchDialog(QDialog):
         )
         bg_layout.addWidget(self.bg_opacity_slider)
         bg_layout.addWidget(self.bg_opacity_label)
-        grid.addWidget(bg_widget, 6, 0, 1, 2)  # row 6
+        grid.addWidget(bg_widget, 7, 0, 1, 2)  # row 7
 
         self.opt_export_images.toggled.connect(bg_widget.setEnabled)
 
@@ -750,6 +759,7 @@ class BatchDialog(QDialog):
             'hull_smoothing':         self.hull_smoothing_slider.value() / 100.0,
             'export_contour_coords':  self.opt_export_contour_coords.isChecked(),
             'contour_smoothing':      self.contour_smoothing_slider.value() / 100.0,
+            'export_tracked_points':  self.opt_export_tracked_points.isChecked(),
         }
         # Ref point pairs: None = all combinations; list = selected (object_name, ref_name)
         if self.ref_all_pairs_radio.isChecked():
@@ -767,24 +777,24 @@ class BatchDialog(QDialog):
                     if obj_name and tgt_name:
                         pairs.append((obj_name, tgt_name, t_type))
             opts['ref_point_pairs'] = pairs or None
-            opts['include_object_distances'] = self.opt_include_obj_dist.isChecked()
-            
-            opts['export_point_mask_analysis'] = self.opt_export_point_mask_analysis.isChecked()
-            if self.imported_all_pairs_radio.isChecked():
-                opts['imported_point_pairs'] = None
-            else:
-                pairs = []
-                for row in range(self.imported_pairs_table.rowCount()):
-                    oi = self.imported_pairs_table.item(row, 0)
-                    ri = self.imported_pairs_table.item(row, 1)
-                    if oi and ri:
-                        obj_name = oi.text().strip()
-                        tgt_name = ri.text().strip()
-                        if obj_name and tgt_name:
-                            pairs.append((obj_name, tgt_name))
-                opts['imported_point_pairs'] = pairs or None
-            
-            return opts
+        opts['include_object_distances'] = self.opt_include_obj_dist.isChecked()
+        
+        opts['export_point_mask_analysis'] = self.opt_export_point_mask_analysis.isChecked()
+        if self.imported_all_pairs_radio.isChecked():
+            opts['imported_point_pairs'] = None
+        else:
+            pairs = []
+            for row in range(self.imported_pairs_table.rowCount()):
+                oi = self.imported_pairs_table.item(row, 0)
+                ri = self.imported_pairs_table.item(row, 1)
+                if oi and ri:
+                    obj_name = oi.text().strip()
+                    tgt_name = ri.text().strip()
+                    if obj_name and tgt_name:
+                        pairs.append((obj_name, tgt_name))
+            opts['imported_point_pairs'] = pairs or None
+        
+        return opts
 
     def run_batch(self):
         items = self._collect_items()
@@ -805,9 +815,9 @@ class BatchDialog(QDialog):
         bad = []
         for sam2, folder, _, _ in items:
             if not os.path.isfile(sam2):
-                bad.append(f"File not found: {sam2}")
+                bad.append(self.loc.get_text("batch_file_not_found", sam2))
             if not os.path.isdir(folder):
-                bad.append(f"Folder not found: {folder}")
+                bad.append(self.loc.get_text("batch_folder_not_found", folder))
         if bad:
             QMessageBox.critical(self,
                 self.loc.get_text("batch_invalid_paths"),
@@ -851,7 +861,7 @@ class BatchDialog(QDialog):
                   if result['success']
                   else self.loc.get_text("batch_status_errors"))
         stats  = ", ".join(f"{k}={v}" for k, v in result.get('stats', {}).items())
-        msg    = f"[{idx + 1}/{total}] {folder}: {status}"
+        msg    = self.loc.get_text("batch_item_result", idx + 1, total, folder, status)
         if stats:
             msg += f"  ({stats})"
         if result['errors']:

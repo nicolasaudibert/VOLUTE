@@ -12,12 +12,13 @@ from PyQt5.QtWidgets import (
     QRadioButton, QGridLayout, QComboBox, QApplication,
 )
 from PyQt5.QtCore import Qt, QDir, QEventLoop
+from PyQt5.QtGui import QColor
 
 from .config_manager import ConfigManager
 from .localization import LocalizationManager
 from .file_utils import FileManager
 from .loading_worker import LoadFolderWorker
-from .sam2_backend import SAM2Backend
+from .sam2_backend import SAM2Backend, infer_model_type
 from .object_manager import ObjectManager
 from .ui_manager import UIManager
 from .image_manager import ImageManager
@@ -37,7 +38,7 @@ from .ffmpeg_manager import FFmpegManager
 from .video_frames_ui import VideoFramesController
 from .export_actions import ExportActions
 from .property_controller import PropertyController
-from .dialogs import localized_question
+from .dialogs import localized_question, RepropagationSpanDialog
 from .file_utils import build_file_filter
 
 # Import SAM2 at main level to avoid Hydra issues
@@ -58,7 +59,8 @@ class SAM2VideoSegmentationApp(QMainWindow):
     TAB_REF_POINTS     = 1
     TAB_PREDICTION     = 2
     
-    def __init__(self, debug_mode=False, config_path=None, checkpoint_path=None, sam2plus_task='mask'):
+    def __init__(self, debug_mode=False, config_path=None, checkpoint_path=None, sam2plus_task='mask',
+                 model_type=None):
         super().__init__()
         
         self.debug_mode = debug_mode
@@ -93,7 +95,7 @@ class SAM2VideoSegmentationApp(QMainWindow):
         
         # Initialize SAM2 backend with filename management
         self.sam2_backend = None
-        self.init_sam2_backend(config_path, checkpoint_path)
+        self.init_sam2_backend(config_path, checkpoint_path, model_type)
         
         # Initialize specialized managers
         # Initialize specialized managers
@@ -148,8 +150,13 @@ class SAM2VideoSegmentationApp(QMainWindow):
         """Track which control-panel tab is active, to gate canvas click behavior"""
         self.active_tab_index = index
     
-    def init_sam2_backend(self, config_path=None, checkpoint_path=None):
-        """Initialize SAM2 backend with configuration support and MedSAM2 detection"""
+    def init_sam2_backend(self, config_path=None, checkpoint_path=None, model_type=None):
+        """Initialize the SAM2 backend.
+
+        model_type ('sam2', 'medsam2' or 'sam2plus') applies to the given paths;
+        when it is missing, or when the default paths are used instead, the
+        family is inferred from the checkpoint.
+        """
         if not SAM2_AVAILABLE:
             raise RuntimeError("SAM2 is not available. Please install SAM2.")
         
@@ -158,22 +165,18 @@ class SAM2VideoSegmentationApp(QMainWindow):
             if config_path and checkpoint_path:
                 final_config_path = config_path
                 final_checkpoint_path = checkpoint_path
+                final_model_type = model_type or infer_model_type(checkpoint_path)
                 if self.debug_mode:
                     print("Using provided paths from command line")
             else:
                 final_config_path = self.get_default_config_path()
                 final_checkpoint_path = self.get_default_checkpoint_path()
+                final_model_type = infer_model_type(final_checkpoint_path)
                 if self.debug_mode:
                     print("Using hardcoded default paths")
             
-            # Detect model type from ACTUAL checkpoint being used
-            is_sam2plus = "SAM2-Plus" in (final_checkpoint_path or "")
-            is_medsam2  = "MedSAM2"   in (final_checkpoint_path or "")
-            model_type  = ("SAM2++" if is_sam2plus else
-               "MedSAM2" if is_medsam2 else "SAM2")
-            
             if self.debug_mode:
-                print(f"Model type: {model_type}")
+                print(f"Model type: {final_model_type}")
                 print(f"Config path: {final_config_path}")
                 print(f"Checkpoint path: {final_checkpoint_path}")
             
@@ -184,7 +187,8 @@ class SAM2VideoSegmentationApp(QMainWindow):
                 self.config_manager.get('models.sam2plus.task', 'mask')
             
             # Initialize model
-            success = self.sam2_backend.initialize(final_checkpoint_path, final_config_path)
+            success = self.sam2_backend.initialize(
+                final_checkpoint_path, final_config_path, final_model_type)
             
             if not success:
                 raise Exception("Failed to initialize SAM2 backend")
@@ -214,8 +218,7 @@ class SAM2VideoSegmentationApp(QMainWindow):
     
     def is_sam2plus_model(self):
         """Check if we're using a SAM2++ model"""
-        cp = self.get_default_checkpoint_path()
-        return "SAM2-Plus" in cp if cp else False
+        return infer_model_type(self.get_default_checkpoint_path()) == 'sam2plus'
     
     def get_default_checkpoint_path(self):
         """Get default checkpoint path - hardcoded for Hydra compatibility"""
@@ -244,8 +247,7 @@ class SAM2VideoSegmentationApp(QMainWindow):
     
     def is_medsam2_model(self):
         """Check if we're using a MedSAM2 model"""
-        checkpoint_path = self.get_default_checkpoint_path()
-        return "medsam2" in checkpoint_path.lower() if checkpoint_path else False
+        return infer_model_type(self.get_default_checkpoint_path()) == 'medsam2'
     
     def is_point_mode(self):
         """Return True when SAM2++ point tracking mode is active."""
@@ -300,7 +302,7 @@ class SAM2VideoSegmentationApp(QMainWindow):
         try:
             self._last_checkpoint_path = checkpoint_path  # remembered for language changes
 
-            if "SAM2-Plus" in checkpoint_path:
+            if self.sam2_backend and getattr(self.sam2_backend, 'is_sam2plus', False):
                 model_name = "SAM2++"
             else:
                 model_name = os.path.splitext(os.path.basename(checkpoint_path))[0]

@@ -16,6 +16,25 @@ from pathlib import Path
 from .filename_manager import FilenameManager
 
 
+def infer_model_type(checkpoint_path):
+    """Guess the model family ('sam2', 'medsam2', 'sam2plus') from a checkpoint.
+
+    Fallback for when the launcher did not name the family. Only the file name
+    and its immediate parent are looked at, so a checkout of the SAM2-Plus or
+    MedSAM2 repository higher up the path does not change the answer:
+    MedSAM2 checkpoints are named MedSAM2_*.pt, and SAM2++ ships its checkpoint
+    in a SAM2-Plus/ folder of its own.
+    """
+    if not checkpoint_path:
+        return 'sam2'
+    path = Path(checkpoint_path)
+    if "MedSAM2" in path.name:
+        return 'medsam2'
+    if path.parent.name == "SAM2-Plus":
+        return 'sam2plus'
+    return 'sam2'
+
+
 class LazyVideoFrameLoader:
     """
     On-demand video frame loader with bounded LRU cache.
@@ -123,8 +142,12 @@ class SAM2Backend:
     # Initialization
     # ------------------------------------------------------------------
 
-    def initialize(self, checkpoint_path, model_config):
-        """Initialize SAM2, MedSAM2, or SAM2++ model"""
+    def initialize(self, checkpoint_path, model_config, model_type=None):
+        """Initialize SAM2, MedSAM2, or SAM2++ model.
+
+        model_type is 'sam2', 'medsam2' or 'sam2plus'; when None it is
+        inferred from the checkpoint path (see infer_model_type).
+        """
         try:
             if self.debug_mode:
                 print(f"Initializing model with checkpoint: {checkpoint_path}")
@@ -133,8 +156,9 @@ class SAM2Backend:
             self.sam2_checkpoint = checkpoint_path
             self.sam2_config     = model_config
 
-            self.is_medsam2  = "MedSAM2"   in (checkpoint_path or "")
-            self.is_sam2plus = "SAM2-Plus"  in (checkpoint_path or "")
+            model_type = model_type or infer_model_type(checkpoint_path)
+            self.is_medsam2  = model_type == 'medsam2'
+            self.is_sam2plus = model_type == 'sam2plus'
 
             if self.debug_mode:
                 model_label = self._model_label()
@@ -188,6 +212,14 @@ class SAM2Backend:
                 self.video_predictor = build_sam2_video_predictor(
                     model_config, checkpoint_path, device=self.device
                 )
+
+            # A frame corrected after tracking becomes a conditioning frame, as
+            # in SAM2's own interactive training configurations. Otherwise SAM2
+            # files the correction apart, and a propagation starting from that
+            # frame returns its former mask: "Re-propagate from this frame"
+            # would undo the correction instead of passing it on.
+            if not (self.is_sam2plus and self.sam2plus_task == 'point'):
+                self.video_predictor.add_all_frames_to_correct_as_cond = True
 
             if self.debug_mode:
                 print(f"{self._model_label()} video predictor initialized successfully")

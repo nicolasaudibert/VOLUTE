@@ -52,22 +52,11 @@ def get_model_paths(model_type, custom_config=None, custom_checkpoint=None):
     """Get config and checkpoint paths based on model type"""
     if custom_config and custom_checkpoint:
         return custom_config, custom_checkpoint
-    
-    if model_type == 'medsam2':
-        # MedSAM2 defaults
-        config = custom_config or "configs/medsam2_configs/sam2.1_hiera_t512.yaml"
-        checkpoint = custom_checkpoint or "./checkpoints/MedSAM2_latest.pt"
-    elif model_type == 'sam2plus':
-        config = custom_config or \
-            "configs/sam2.1/sam2.1_hiera_b+_predmasks_decoupled_MAME.yaml"
-        checkpoint = custom_checkpoint or \
-            "./checkpoints/SAM2-Plus/checkpoint_phase123.pt"
-    else:  # sam2
-        # SAM2 defaults
-        config = custom_config or "configs/sam2.1/sam2.1_hiera_l.yaml"
-        checkpoint = custom_checkpoint or "./checkpoints/sam2.1_hiera_large.pt"
-    
-    return config, checkpoint
+
+    model_dialog = _load_gui_module(Path(__file__).parent, 'model_dialog')
+    config, checkpoint = model_dialog.FAMILY_DEFAULTS.get(
+        model_type, model_dialog.FAMILY_DEFAULTS['sam2'])
+    return custom_config or config, custom_checkpoint or checkpoint
 
 def _load_gui_module(script_dir, name):
     """Import one volute submodule without importing the package itself.
@@ -94,11 +83,13 @@ def resolve_model_selection(args, script_dir):
     used without asking.
 
     Returns (model, config, checkpoint, task, debug), or None when the person
-    dismissed the chooser.
+    dismissed the chooser. model is None when --checkpoint is given without
+    --model: the family is then inferred from the checkpoint file name.
     """
     if any(value is not None for value in
            (args.model, args.config, args.checkpoint, args.task)):
-        return (args.model or 'sam2', args.config, args.checkpoint,
+        model = args.model or (None if args.checkpoint else 'sam2')
+        return (model, args.config, args.checkpoint,
                 args.task or 'mask', args.debug)
 
     config_manager = _load_gui_module(script_dir, 'config_manager').ConfigManager()
@@ -106,7 +97,9 @@ def resolve_model_selection(args, script_dir):
     entry = model_dialog.find_entry(config_manager.get_default_model())
     debug = args.debug
 
-    if config_manager.show_model_dialog():
+    # A default model whose files are missing would fail at every start: the
+    # chooser opens instead, even when turned off
+    if config_manager.show_model_dialog() or not model_dialog.is_installed(entry):
         localization = _load_gui_module(script_dir, 'localization').LocalizationManager(
             default_language=config_manager.get_default_language())
         dialog = model_dialog.ModelSelectionDialog(localization, config_manager)
@@ -233,7 +226,7 @@ def main():
         from volute import SAM2VideoSegmentationApp, __version__ as APP_VERSION
         app.setApplicationVersion(APP_VERSION)
 
-        print(f"Model type: {model_type.upper()}")
+        print(f"Model type: {model_type.upper() if model_type else 'from checkpoint'}")
         print(f"Config path: {config_path}")
         print(f"Checkpoint path: {checkpoint_path}")
         print(f"Debug mode: {debug_mode}")
@@ -245,6 +238,7 @@ def main():
             config_path=config_path,
             checkpoint_path=checkpoint_path,
             sam2plus_task=task,
+            model_type=model_type,
         )
         
         # Start event loop

@@ -19,6 +19,12 @@ comment_audit/fragments.tsv
 # Claude Code session data
 .claude/
 
+# Documentation site, built by build_docs.py: the sources it prepares, its
+# output, and Zensical's cache
+.docs_build/
+site/
+.cache/
+
 # Python bytecode and macOS folder metadata (also covered repository-wide)
 __pycache__/
 *.py[cod]

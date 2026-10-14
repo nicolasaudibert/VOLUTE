@@ -93,6 +93,10 @@ class BatchProcessor:
         """Request cancellation of the running batch"""
         self._cancelled = True
 
+    def _t(self, key, *args):
+        """Interface text for the log and progress labels of the batch dialog"""
+        return self.localization.get_text(key, *args)
+
     def _is_point_mode(self):
         """Return True when the backend is SAM2++ in point task."""
         return (getattr(self.sam2_backend, 'is_sam2plus', False) and
@@ -241,7 +245,9 @@ class BatchProcessor:
                                 mask_progress_callback=None):
         """
         Run SAM2 prediction on the reference frame for every object defined
-        there — by points, by a box, or by an imported mask.
+        there — by points, by a box, or by an imported mask. In SAM2++ point
+        tracking mode, each object's first positive point seeds its tracked
+        point instead.
 
         Args:
             mask_progress_callback: optional callable(current, total, label)
@@ -249,6 +255,11 @@ class BatchProcessor:
         Returns:
             (list of predicted obj_ids, list of error strings)
         """
+        if self._is_point_mode():
+            return self._predict_point_track_reference(
+                object_manager, ref_frame_idx, image_w, image_h, mask_progress_callback
+            )
+
         objects_to_predict = self._objects_on_reference_frame(object_manager, ref_frame_idx)
         total_objs = len(objects_to_predict)
         predicted, errors = [], []
@@ -257,7 +268,7 @@ class BatchProcessor:
             if mask_progress_callback:
                 mask_progress_callback(
                     obj_idx, total_objs,
-                    f"Predicting object {obj_id} ({obj_idx + 1}/{total_objs})"
+                    self._t("batch_progress_predicting_object", obj_id, obj_idx + 1, total_objs)
                 )
 
             try:
@@ -273,10 +284,10 @@ class BatchProcessor:
                         object_manager.store_mask(obj_id, ref_frame_idx, mask)
                         predicted.append(obj_id)
             except Exception as e:
-                errors.append(f"Prediction error (obj {obj_id}): {e}")
+                errors.append(self._t("batch_error_prediction", obj_id, e))
 
         if mask_progress_callback:
-            mask_progress_callback(total_objs, total_objs, "Prediction complete")
+            mask_progress_callback(total_objs, total_objs, self._t("batch_progress_prediction_done"))
 
         return predicted, errors
 
@@ -303,11 +314,11 @@ class BatchProcessor:
                     mask = self.sam2_backend.process_mask_output(out_mask_logits[i])
                     object_manager.store_mask(obj_id, frame_idx, mask)
                 frame_count += 1
-                report(frame_count, total_frames, f"{label}… (frame {frame_idx})")
+                report(frame_count, total_frames, self._t("batch_progress_frame", label, frame_idx))
                 if self._cancelled:
                     break
         except Exception as e:
-            return frame_count, f"{label} error: {e}"
+            return frame_count, self._t("batch_error_step", label, e)
         return frame_count, None
 
     def propagate_video(self, object_manager, ref_frame_idx,
@@ -336,7 +347,8 @@ class BatchProcessor:
 
         # Forward pass
         _, error = self._consume_propagation(
-            object_manager, ref_frame_idx, False, total_frames, "Forward propagation", _report)
+            object_manager, ref_frame_idx, False, total_frames,
+            self._t("batch_progress_forward"), _report)
         if error:
             errors.append(error)
 
@@ -352,12 +364,12 @@ class BatchProcessor:
                         object_manager, obj_id, ref_frame_idx, image_w, image_h
                     )
             except Exception as e:
-                errors.append(f"Backward propagation error: {e}")
+                errors.append(self._t("batch_error_step", self._t("batch_progress_backward"), e))
                 return errors
 
             _, error = self._consume_propagation(
-                object_manager, ref_frame_idx, True, ref_frame_idx, "Backward propagation",
-                _report, skip_existing=True)
+                object_manager, ref_frame_idx, True, ref_frame_idx,
+                self._t("batch_progress_backward"), _report, skip_existing=True)
             if error:
                 errors.append(error)
 
@@ -373,8 +385,10 @@ class BatchProcessor:
         predicted, errors = [], []
         for idx, obj_id in enumerate(objects):
             if mask_progress_callback:
-                mask_progress_callback(idx, len(objects),
-                                       f"Point-tracking obj {obj_id}")
+                mask_progress_callback(
+                    idx, len(objects),
+                    self._t("batch_progress_predicting_object", obj_id, idx + 1, len(objects))
+                )
             pos = object_manager.object_points[obj_id][ref_frame_idx]['positive']
             if not pos:
                 continue
@@ -395,9 +409,10 @@ class BatchProcessor:
                             object_manager.object_tracked_points[obj_id][ref_frame_idx] = coord
                             predicted.append(obj_id)
             except Exception as e:
-                errors.append(f"Point track prediction error (obj {obj_id}): {e}")
+                errors.append(self._t("batch_error_prediction", obj_id, e))
         if mask_progress_callback:
-            mask_progress_callback(len(objects), len(objects), "Done")
+            mask_progress_callback(len(objects), len(objects),
+                                   self._t("batch_progress_prediction_done"))
         return predicted, errors
     
     def _propagate_point_tracks_video(self, object_manager, ref_frame_idx,
@@ -410,7 +425,9 @@ class BatchProcessor:
             if mask_progress_callback:
                 mask_progress_callback(cur, tot, label)
     
-        _report(0, 0, "Forward point-track propagation…")
+        forward_label = self._t("batch_progress_point_forward")
+        backward_label = self._t("batch_progress_point_backward")
+        _report(0, 0, f"{forward_label}…")
         try:
             for frame_idx, coords in self.sam2_backend.propagate_point_tracks(
                 ref_frame_idx, reverse=False
@@ -420,11 +437,11 @@ class BatchProcessor:
                         object_manager.object_tracked_points[obj_id] = {}
                     object_manager.object_tracked_points[obj_id][frame_idx] = (x, y)
                 frame_count += 1
-                _report(frame_count, 0, f"Forward… (frame {frame_idx})")
+                _report(frame_count, 0, self._t("batch_progress_frame", forward_label, frame_idx))
                 if self._cancelled:
                     return errors
         except Exception as e:
-            errors.append(f"Forward point-track propagation error: {e}")
+            errors.append(self._t("batch_error_step", forward_label, e))
     
         if ref_frame_idx > 0 and not self._cancelled:
             try:
@@ -437,11 +454,11 @@ class BatchProcessor:
                         if frame_idx not in object_manager.object_tracked_points[obj_id]:
                             object_manager.object_tracked_points[obj_id][frame_idx] = (x, y)
                     frame_count += 1
-                    _report(frame_count, 0, f"Backward… (frame {frame_idx})")
+                    _report(frame_count, 0, self._t("batch_progress_frame", backward_label, frame_idx))
                     if self._cancelled:
                         return errors
             except Exception as e:
-                errors.append(f"Backward point-track propagation error: {e}")
+                errors.append(self._t("batch_error_step", backward_label, e))
     
         return errors
 
@@ -605,10 +622,8 @@ class BatchProcessor:
         imported_filenames = sorted({r['original_filename'] for r in rows})
     
         if len(imported_filenames) != len(current_basenames):
-            warnings.append(
-                f"Tracked points frame count mismatch: {len(imported_filenames)} "
-                f"imported vs {len(current_basenames)} in folder"
-            )
+            warnings.append(self._t("batch_warning_frame_count_mismatch",
+                                    len(imported_filenames), len(current_basenames)))
     
         basename_to_frame = {name: idx for idx, name in enumerate(current_basenames)}
         matched_rows = []
@@ -621,10 +636,10 @@ class BatchProcessor:
                 matched_rows.append((r['name'], frame_idx, r['x_px'], r['y_px']))
     
         if not matched_rows:
-            raise ValueError("None of the imported filenames match the current image folder")
+            raise ValueError(self._t("batch_warning_no_filename_match"))
     
         if unmatched:
-            warnings.append(f"{len(unmatched)} imported filename(s) unmatched and skipped")
+            warnings.append(self._t("batch_warning_filenames_unmatched", len(unmatched)))
     
         for name, frame_idx, x_px, y_px in matched_rows:
             imported_point_manager.add_point(name, frame_idx, x_px, y_px)
@@ -639,7 +654,7 @@ class BatchProcessor:
                 if imported_point_manager.out_of_bounds_count(name, width, height) > 0
             ]
             if flagged:
-                warnings.append(f"Out-of-bounds imported points for: {', '.join(flagged[:10])}")
+                warnings.append(self._t("batch_warning_out_of_bounds", ', '.join(flagged[:10])))
     
         return warnings
 
@@ -878,20 +893,20 @@ class BatchProcessor:
                   'output_folder': item_out, 'stats': {}}
 
         try:
-            _log(f"Loading {os.path.basename(sam2_file)}…")
+            _log(self._t("batch_log_loading_project", os.path.basename(sam2_file)))
             object_data = self.load_sam2_file(sam2_file)
             om = self.build_object_manager(object_data)
             om.hull_smoothing = options.get('hull_smoothing', 0.0)
             om.contour_smoothing  = options.get('contour_smoothing', 0.0)
 
             if not om.object_colors:
-                result['errors'].append("No objects found in .volute file")
+                result['errors'].append(self._t("batch_error_no_objects"))
                 return result
 
-            _log("Loading images…")
+            _log(self._t("batch_log_loading_images"))
             image_paths = self.get_image_paths(image_folder)
             if not image_paths:
-                result['errors'].append(f"No images found in {image_folder}")
+                result['errors'].append(self._t("batch_error_no_images", image_folder))
                 return result
             
             # Import tracked points (per-item file takes priority over
@@ -900,7 +915,7 @@ class BatchProcessor:
             ipm = ImportedPointManager()
             try:
                 if tracked_points_file:
-                    _log("Importing tracked points…")
+                    _log(self._t("batch_log_importing_tracked_points"))
                     import_warnings = self.import_tracked_points_for_item(
                         tracked_points_file, image_paths, ipm
                     )
@@ -911,26 +926,26 @@ class BatchProcessor:
                         for fidx, coords in frames.items():
                             ipm.add_point(name, int(fidx), float(coords[0]), float(coords[1]))
             except Exception as e:
-                result['warnings'].append(f"Tracked points import skipped: {e}")
+                result['warnings'].append(self._t("batch_warning_tracked_points_skipped", e))
             
             from PIL import Image as PILImage
             with PILImage.open(image_paths[0]) as img:
                 image_w, image_h = img.size
 
             ref_frame_idx = self.get_reference_frame(om, ref_frame)
-            _log(f"Reference frame: {ref_frame_idx} / {len(image_paths) - 1}")
+            _log(self._t("batch_log_reference_frame", ref_frame_idx, len(image_paths) - 1))
 
-            _log("Initializing SAM2…")
+            _log(self._t("status_initializing_sam2"))
             self.sam2_backend.reset_state()
             if not self.sam2_backend.init_inference_state(image_folder):
-                result['errors'].append("SAM2 initialization failed")
+                result['errors'].append(self._t("batch_error_sam2_init"))
                 return result
 
             if self._cancelled:
                 return result
 
             # Predict reference frame
-            _log("Predicting reference frame…")
+            _log(self._t("batch_log_predicting_reference"))
             obj_ids_predicted, pred_errors = self.predict_reference_frame(
                 om, ref_frame_idx, image_w, image_h,
                 mask_progress_callback=mask_progress_callback
@@ -939,18 +954,19 @@ class BatchProcessor:
             result['stats']['predicted_objects'] = len(obj_ids_predicted)
 
             if options.get('export_state_predict', False):
-                _log("Exporting inference state (prediction)…")
+                _log(self._t("batch_log_exporting_state_predict"))
                 state_path = os.path.join(item_out, f"{folder_name}_predict.voluteinf")
                 try:
                     self.export_inference_state(state_path, om, image_paths, image_folder)
                 except Exception as e:
-                    result['errors'].append(f"State export (predict): {e}")
+                    result['errors'].append(self._t("batch_error_state_predict", e))
 
             if self._cancelled:
                 return result
 
             if options.get('propagate', True):
-                _log("Propagating masks…")
+                _log(self._t("batch_log_propagating_points" if self._is_point_mode()
+                             else "batch_log_propagating"))
                 prop_errors = self.propagate_video(
                     om, ref_frame_idx, image_folder,
                     image_w, image_h, obj_ids_predicted,
@@ -966,15 +982,15 @@ class BatchProcessor:
                 return result
 
             if options.get('export_state_propagate', False) and options.get('propagate', True):
-                _log("Exporting inference state (propagation)…")
+                _log(self._t("batch_log_exporting_state_propagate"))
                 state_path = os.path.join(item_out, f"{folder_name}_propagate.voluteinf")
                 try:
                     self.export_inference_state(state_path, om, image_paths, image_folder)
                 except Exception as e:
-                    result['errors'].append(f"State export (propagate): {e}")
+                    result['errors'].append(self._t("batch_error_state_propagate", e))
 
             if options.get('export_images', True) and not self._cancelled:
-                _log("Exporting masked images…")
+                _log(self._t("batch_log_exporting_images"))
                 try:
                     n = self.export_masked_images(
                         om, image_paths,
@@ -982,12 +998,12 @@ class BatchProcessor:
                         bg_opacity=options.get('bg_opacity', 1.0)
                     )
                     result['stats']['exported_images'] = n
-                    _log(f"  {n} images exported")
+                    _log("  " + self._t("batch_log_images_exported", n))
                 except Exception as e:
-                    result['errors'].append(f"Image export: {e}")
+                    result['errors'].append(self._t("batch_error_images", e))
 
             if options.get('export_centroids', True) and not self._cancelled:
-                _log("Exporting centroids…")
+                _log(self._t("batch_log_exporting_centroids"))
                 try:
                     n = self.export_centroids(
                         om, image_paths,
@@ -995,10 +1011,10 @@ class BatchProcessor:
                     )
                     result['stats']['exported_centroids'] = n
                 except Exception as e:
-                    result['errors'].append(f"Centroids export: {e}")
+                    result['errors'].append(self._t("batch_error_centroids", e))
 
             if options.get('export_coordinates', True) and not self._cancelled:
-                _log("Exporting mask coordinates…")
+                _log(self._t("batch_log_exporting_coordinates"))
                 try:
                     n = self.export_coordinates(
                         om, image_paths,
@@ -1006,10 +1022,10 @@ class BatchProcessor:
                     )
                     result['stats']['exported_coordinates'] = n
                 except Exception as e:
-                    result['errors'].append(f"Coordinates export: {e}")
+                    result['errors'].append(self._t("batch_error_coordinates", e))
 
             if options.get('export_contour_coords', False) and not self._cancelled:
-                _log("Exporting contour coordinates…")
+                _log(self._t("batch_log_exporting_contours"))
                 try:
                     from .exporters import MaskContourExporter
                     exporter = MaskContourExporter(debug_mode=self.debug_mode)
@@ -1022,10 +1038,10 @@ class BatchProcessor:
                     )
                     result['stats']['exported_contour_coords'] = n
                 except Exception as e:
-                    result['errors'].append(f"Contour coordinates export: {e}")
+                    result['errors'].append(self._t("batch_error_contours", e))
 
-            if options.get('export_closest_points', False) and not self._cancelled:
-                _log("Exporting hull coordinates…")
+            if options.get('export_hull_coords', False) and not self._cancelled:
+                _log(self._t("batch_log_exporting_hulls"))
                 try:
                     from .exporters import ConvexHullExporter
                     exporter = ConvexHullExporter(debug_mode=self.debug_mode)
@@ -1038,10 +1054,10 @@ class BatchProcessor:
                     )
                     result['stats']['exported_hull_coords'] = n
                 except Exception as e:
-                    result['errors'].append(f"Hull coordinates export: {e}")
+                    result['errors'].append(self._t("batch_error_hulls", e))
 
             if options.get('export_tracked_points', False) and not self._cancelled:
-                _log("Exporting tracked points…")
+                _log(self._t("batch_log_exporting_tracked_points"))
                 try:
                     from .exporters import TrackedPointExporter
                     exporter = TrackedPointExporter(debug_mode=self.debug_mode)
@@ -1053,10 +1069,10 @@ class BatchProcessor:
                     )
                     result['stats']['exported_tracked_points'] = n
                 except Exception as e:
-                    result['errors'].append(f"Tracked points export: {e}")
+                    result['errors'].append(self._t("batch_error_tracked_points", e))
 
             if options.get('export_closest_points', False) and not self._cancelled:
-                _log("Exporting closest mask points…")
+                _log(self._t("batch_log_exporting_closest_points"))
                 try:
                     from .reference_point_exporter import TARGET_REF, TARGET_OBJ
                     from .reference_point_manager import ReferencePointManager
@@ -1082,10 +1098,10 @@ class BatchProcessor:
                     )
                     result['stats']['exported_closest_points'] = n
                 except Exception as e:
-                    result['errors'].append(f"Closest mask points export: {e}")
+                    result['errors'].append(self._t("batch_error_closest_points", e))
 
             if options.get('export_point_mask_analysis', False) and not self._cancelled:
-                _log("Exporting point/mask analysis…")
+                _log(self._t("batch_log_exporting_point_mask_analysis"))
                 try:
                     from .pair_selection_dialog import TARGET_IMPORTED
             
@@ -1102,13 +1118,13 @@ class BatchProcessor:
                     )
                     result['stats']['exported_point_mask_analysis'] = n
                 except Exception as e:
-                    result['errors'].append(f"Point/mask analysis export: {e}")
+                    result['errors'].append(self._t("batch_error_point_mask_analysis", e))
 
             result['success'] = not self._cancelled
             return result
 
         except Exception as e:
-            result['errors'].append(f"Unexpected error: {e}")
+            result['errors'].append(self._t("batch_error_unexpected", e))
             if self.debug_mode:
                 import traceback
                 traceback.print_exc()

@@ -1,0 +1,51 @@
+/* VOLUTE purple, from the logo: the light version on a light page, the
+   lighter one of lockup_dark.svg on a dark page. */
+:root > * {
+  --md-primary-fg-color: #7e50ad;
+  --md-primary-fg-color--light: #9b74c4;
+  --md-primary-fg-color--dark: #643d8c;
+  --md-accent-fg-color: #7e50ad;
+  --md-typeset-a-color: #7e50ad;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #b58ee0;
+  --md-primary-fg-color--light: #c9aee9;
+  --md-primary-fg-color--dark: #9b74c4;
+  --md-accent-fg-color: #b58ee0;
+  --md-typeset-a-color: #b58ee0;
+}
+
+/* The logo is the horizontal lockup, which carries the name: room for it,
+   and the site name beside it hidden. In the header, the page title still
+   replaces it on scroll. */
+.md-header__button.md-logo {
+  width: auto;
+  height: auto;
+}
+
+.md-header__button.md-logo img {
+  height: 1.9rem;
+}
+
+.md-header__title .md-header__topic:first-child {
+  opacity: 0;
+}
+
+/* Same atop the navigation drawer of a narrow screen, whose rules are more
+   specific. */
+.md-nav .md-nav__title[for="__drawer"] {
+  font-size: 0;
+}
+
+.md-nav .md-nav__title[for="__drawer"] .md-logo {
+  width: auto;
+  height: 1.9rem;
+}
+
+/* One logo per palette, see overrides/partials/logo.html; important, as the
+   theme sets the logo's display in several places. */
+[data-md-color-scheme="default"] .md-logo img.logo-dark,
+[data-md-color-scheme="slate"] .md-logo img.logo-light {
+  display: none !important;
+}

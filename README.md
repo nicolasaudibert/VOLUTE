@@ -20,6 +20,8 @@ sequence, then export masks, coordinates, centroids and contours. Everything run
 Developed for research in speech sciences, where it serves to track articulatory and facial structures
 across video frames, but nothing in it is specific to that field.
 
+**Documentation**, in English and French: **https://nicolasaudibert.github.io/VOLUTE/** — installation guides, a tutorial and a FAQ.
+
 <!-- A screenshot of the main window goes well here. docs/banner.png is the GitHub social preview,
      uploaded under Settings › General › Social preview. -->
 
@@ -43,6 +45,25 @@ across video frames, but nothing in it is specific to that field.
 - PyQt5, matplotlib, NumPy, Pillow, SciPy; optional: pandas + openpyxl for XLSX export, scikit-image or OpenCV for contours, GIMP 3.0+ for the editing round-trip, ffmpeg (with ffprobe) to extract frames from a video
 
 ## Installation
+
+On **macOS** and **Windows**, one command pasted into the Terminal or PowerShell installs
+everything — Python environment, PyTorch, SAM2-Plus, the models chosen and VOLUTE — into a
+folder of its own, and creates the launcher:
+
+```bash
+# macOS (Terminal)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/nicolasaudibert/VOLUTE/main/install/install_volute_macos.sh)"
+```
+
+```powershell
+# Windows (PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/nicolasaudibert/VOLUTE/main/install/install_volute_windows.ps1 | iex"
+```
+
+Running it again updates VOLUTE. Step-by-step guides for newcomers to the command line:
+[Windows](docs/install-windows.md) ([français](docs/install-windows.fr.md)) and [macOS](docs/install-macos.md) ([français](docs/install-macos.fr.md)); details are in **[INSTALL.md](INSTALL.md#quick-installation-windows-and-macos)**.
+
+For Linux, or to install by hand:
 
 1. Install SAM2 (or SAM2++/MedSAM2) and download the checkpoints
 2. Install the GUI dependencies
@@ -73,8 +94,9 @@ python tools/VOLUTE.py --model sam2plus --task point  # SAM2++, point tracking
 ```
 
 Ready-made launchers for every model can be generated with `install_launchers_Unix_MacOS.sh`
-(macOS/Linux) or `install_launchers_windows.bat`. On macOS, `install_app_bundle_macos.sh`
-additionally builds a double-clickable `.app`.
+(macOS/Linux) or `install_launchers_windows.bat`; the Windows ones work by double-click, with a
+Desktop shortcut. On macOS, `install_app_bundle_macos.sh` additionally builds a double-clickable
+`.app`.
 
 ## Getting started
 
@@ -87,9 +109,10 @@ A first pass over a sequence, from an empty window to exported masks:
    slider or the frame spinbox below the canvas.
 3. **Create an object.** **Add object** in the Objects tab. Give it a name and a colour, or
    keep the defaults.
-4. **Point at it.** With *Add points* mode active, left-click inside the object. Right-click
-   (or `Ctrl`-click) marks what to leave out. A bounding box, drawn in *Define box* mode,
-   can be combined with the points or replace them.
+4. **Outline it.** In *Define box* mode, drag a bounding box around the object. Then, with
+   *Add points* mode active, left-click inside the object, and right-click (or `Ctrl`-click)
+   on what to leave out. A box alone may do for a compact object; points alone work too,
+   but the box usually brings the first mask closer.
 5. **Segment the frame.** **Predict masks on current image**. Adjust by adding points and
    predicting again until the mask is right.
 6. **Follow it through the sequence.** **Propagate masks through video** tracks the object
@@ -99,7 +122,8 @@ A first pass over a sequence, from an empty window to exported masks:
 8. **Export.** Masked images (`Ctrl+Shift+I`), or coordinates, centroids, hulls and contours
    from the Export menu.
 
-Repeat steps 3 to 6 for each object; they are tracked together. **File › Export project data**
+Repeat steps 3 to 5 for each object on the same frame before propagating: the objects are
+then tracked together. **File › Export project data**
 (`Ctrl+S`) saves the whole session to a `.volute` file to resume later.
 
 ## Documentation
@@ -107,6 +131,8 @@ Repeat steps 3 to 6 for each object; they are tracked together. **File › Expor
 **[DOCUMENTATION.md](DOCUMENTATION.md)** covers the whole application: every feature, the interaction
 model, the UI layout, keyboard shortcuts, export and file formats, batch processing, localization, and
 an architecture overview of the modules.
+
+**[FAQ](docs/faq.md)** ([français](docs/faq.fr.md)) answers the most common questions, from installing to citing.
 
 **[CHANGELOG.md](CHANGELOG.md)** lists what changed between versions.
 

@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QPushButton, QComboBox, QSpinBox, QDoubleSpinBox, QRadioButton,
     QCheckBox, QDialogButtonBox, QFileDialog, QMessageBox, QWidget,
 )
-from PyQt5.QtCore import Qt, QDir
+from PyQt5.QtCore import Qt, QDir, QLocale
 
 from .dialogs import localized_question
 from .ffmpeg_manager import (
@@ -41,6 +41,18 @@ def frame_stem(video_path):
     return stem or DEFAULT_STEM
 
 
+class DecimalSpinBox(QDoubleSpinBox):
+    """QDoubleSpinBox taking a point or a comma as decimal separator,
+    whatever its locale, and turning either into the locale's as it is typed.
+    Its text carries no group separator for the comma to be mistaken for."""
+
+    def validate(self, text, pos):
+        point = self.locale().decimalPoint()
+        for separator in '.,':
+            text = text.replace(separator, point)
+        return super().validate(text, pos)
+
+
 class VideoFramesDialog(QDialog):
     """Options of a frame extraction: video, destination, image format and
     JPEG quality, frame rate, and an optional time range. Probes the video
@@ -53,6 +65,10 @@ class VideoFramesDialog(QDialog):
         self.ffmpeg_manager = ffmpeg_manager
         self.info = None
         self._suggested_destination = None
+        # Numbers follow the interface language's conventions, decimal
+        # separator included; values themselves stay plain floats
+        self.number_locale = QLocale(localization.current_language)
+        self.number_locale.setNumberOptions(QLocale.OmitGroupSeparator)
         self.setWindowTitle(localization.get_text("video_frames_title"))
         self.setMinimumWidth(680)
         self._build()
@@ -113,7 +129,8 @@ class VideoFramesDialog(QDialog):
         self.rate_all = QRadioButton(loc.get_text("video_frames_rate_all"))
         self.rate_all.setChecked(True)
         self.rate_fps = QRadioButton(loc.get_text("video_frames_rate_fps"))
-        self.fps_spin = QDoubleSpinBox()
+        self.fps_spin = DecimalSpinBox()
+        self.fps_spin.setLocale(self.number_locale)
         self.fps_spin.setDecimals(2)
         self.fps_spin.setRange(0.01, 1000.0)
         self.fps_spin.setValue(5.0)
@@ -154,7 +171,8 @@ class VideoFramesDialog(QDialog):
     def _time_field(self):
         """Checkbox enabling a time in seconds, and the spin box holding it"""
         check = QCheckBox()
-        spin = QDoubleSpinBox()
+        spin = DecimalSpinBox()
+        spin.setLocale(self.number_locale)
         spin.setDecimals(3)
         spin.setRange(0.0, MAX_SECONDS)
         spin.setSuffix(" s")
@@ -225,16 +243,21 @@ class VideoFramesDialog(QDialog):
                 self.end_spin.setValue(duration)
         self._update_preview()
 
+    def _number(self, value, fmt, precision):
+        """value formatted as QLocale.toString() does, in the interface
+        language"""
+        return self.number_locale.toString(float(value), fmt, precision)
+
     def _describe(self, info):
         def shown(value, fmt):
-            return fmt.format(value) if value else "?"
+            return fmt(value) if value else "?"
         size = (f"{info['width']}×{info['height']}"
                 if info.get('width') and info.get('height') else "?")
         return self.loc.get_text(
             "video_frames_info",
-            shown(info.get('duration'), "{:.2f}"),
-            shown(info.get('fps'), "{:.3g}"),
-            shown(info.get('frame_count'), "{}"),
+            shown(info.get('duration'), lambda v: self._number(v, 'f', 2)),
+            shown(info.get('fps'), lambda v: self._number(v, 'g', 3)),
+            shown(info.get('frame_count'), str),
             size,
         )
 
@@ -291,7 +314,8 @@ class VideoFramesDialog(QDialog):
             return self.loc.get_text("video_frames_bad_range")
         duration = self.info.get('duration') if self.info else None
         if start is not None and duration and start >= duration:
-            return self.loc.get_text("video_frames_start_past_end", f"{duration:.2f}")
+            return self.loc.get_text("video_frames_start_past_end",
+                                     self._number(duration, 'f', 2))
         return None
 
     def accept(self):

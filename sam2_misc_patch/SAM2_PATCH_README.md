@@ -84,7 +84,9 @@ python tools/sam2_misc_patch/patch_sam2_misc.py
 
 The script will:
 
-1. Check whether CUDA is available — **exits without any modification** if it is
+1. Check whether CUDA is available and SAM2's compiled `_C` extension imports — **exits
+   without any modification** if both hold; a CUDA machine where SAM2 was installed
+   without compiling the extension is patched like any other
 2. Run `pip install scipy` in the active environment if `scipy` is not importable
 3. Back up `misc.py` → `misc.py.bak` in the same directory
 4. Replace `get_connected_components` with a `scipy.ndimage`-based implementation

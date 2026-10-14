@@ -1,20 +1,80 @@
 # VOLUTE Installation Guide
 
-Complete installation instructions for the SAM2 Video Segmentation GUI.
+Complete installation instructions for VOLUTE.
 Supports SAM2, MedSAM2 (optional), and SAM2++ backends in a single environment.
 
 ## Table of Contents
 
-1. [Prerequisites](#prerequisites)
-2. [Environment Setup](#environment-setup)
-3. [SAM2++ Installation](#sam2-installation)
-4. [GUI Dependencies](#gui-dependencies)
-5. [GUI Installation](#gui-installation)
-6. [Checkpoint Download](#checkpoint-download)
-7. [MedSAM2 Setup (Optional)](#medsam2-setup-optional)
-8. [Configuration](#configuration)
-9. [Running the Application](#running-the-application)
-10. [Troubleshooting](#troubleshooting)
+1. [Quick Installation (Windows and macOS)](#quick-installation-windows-and-macos)
+2. [Prerequisites](#prerequisites)
+3. [Environment Setup](#environment-setup)
+4. [SAM2++ Installation](#sam2-installation)
+5. [GUI Dependencies](#gui-dependencies)
+6. [GUI Installation](#gui-installation)
+7. [Checkpoint Download](#checkpoint-download)
+8. [MedSAM2 Setup (Optional)](#medsam2-setup-optional)
+9. [Configuration](#configuration)
+10. [Running the Application](#running-the-application)
+11. [Troubleshooting](#troubleshooting)
+
+## Quick Installation (Windows and macOS)
+
+One command installs everything VOLUTE needs into a folder of its own — Miniforge, a
+Python environment, PyTorch, SAM2-Plus, the models chosen and VOLUTE itself — and creates
+the launcher. Nothing else on the computer is changed: an existing Python, conda or
+Anaconda installation is left alone, and no shell or `PATH` setting is modified.
+
+**macOS** — open **Terminal** (Applications › Utilities) and paste:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/nicolasaudibert/VOLUTE/main/install/install_volute_macos.sh)"
+```
+
+**Windows** — open **PowerShell** (type *PowerShell* in the Start menu) and paste:
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/nicolasaudibert/VOLUTE/main/install/install_volute_windows.ps1 | iex"
+```
+
+Step-by-step guides, written for newcomers to the command line, walk through it:
+[Windows](docs/install-windows.md) ([français](docs/install-windows.fr.md)) and [macOS](docs/install-macos.md) ([français](docs/install-macos.fr.md)).
+
+The installer shows what it detected, asks which models to download, then works on its
+own. Depending on the connection, the hardware and the models, it takes 15 to 45 minutes
+and 6 to 10 GB of disk space.
+
+- **Folder**: `~/VOLUTE` on macOS; `%USERPROFILE%\VOLUTE` on Windows, or `C:\VOLUTE`
+  when the user folder's path contains spaces or accented letters, which conda handles
+  poorly. Set `VOLUTE_PREFIX` to choose another one. It holds `miniforge3` (Python and
+  the environment), `SAM2-Plus` — whichever models are chosen, since it also provides
+  SAM2's code — with VOLUTE in `SAM2-Plus/tools` and the models in
+  `SAM2-Plus/checkpoints`, and `install.log`. pip's cache is kept there too, in
+  `pip-cache`, rather than in the user profile; it is deleted once the installation
+  succeeds, and kept after an interrupted one, which then resumes from it.
+- **Hardware**: a Mac with Apple Silicon gets GPU acceleration (MPS); an Intel Mac the
+  PyTorch build of conda-forge, PyPI no longer providing one, and runs markedly slower; an
+  NVIDIA GPU the CUDA build matching what its driver supports, read from `nvidia-smi`; any
+  other computer a CPU build, which works, but segmentation is markedly slower.
+- **SAM2's CUDA extension** is not compiled, which would need Visual Studio and the CUDA
+  toolkit; the [post-processing patch](#optional-cpumps-fallback-patch-for-mask-post-processing)
+  is applied instead.
+- **Models**: SAM2.1 Large (selected by default), SAM2.1 Small, SAM2++, and MedSAM2 —
+  its four checkpoints, under CC BY-SA 4.0, and the config they need, placed in
+  `sam2/configs/medsam2_configs/` — or `a` for all of them; `--models` passed to the
+  installer answers the question beforehand.
+- **ffmpeg** comes with the environment, for frame extraction from a video.
+- **Launcher**: `VOLUTE.app` in the `Applications` folder of the home folder on macOS, a
+  **VOLUTE** shortcut on the Desktop on Windows.
+- **Updating**: run the same command again. VOLUTE is updated to its latest release, the
+  settings in `volute_config.yaml` are kept, and further models can be added; whatever is
+  already installed is not downloaded again. The same applies after an interrupted
+  installation.
+- **Uninstalling**: delete the folder, and `VOLUTE.app` or the Desktop shortcut.
+- **Log**: `install.log` in the folder records every step, with the error messages of
+  pip and conda, for troubleshooting.
+
+The
+sections below describe the installation step by step, for Linux or a setup of one's own.
 
 ## Prerequisites
 
@@ -51,19 +111,32 @@ cd SAM2-Plus
 # Make the repo root importable (add to your shell profile for persistence)
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 
-# Install PyTorch — choose the command matching your hardware:
+# Install PyTorch — choose the command matching your hardware.
+# For an NVIDIA GPU, `nvidia-smi` prints the highest CUDA version the driver
+# supports, top right; pick the newest build below that does not exceed it.
 
-# CUDA 12.1 (most NVIDIA GPUs)
+# NVIDIA GPU, CUDA 12.6 (most current GPUs and drivers)
 pip install torch==2.7.0 torchvision==0.22.0 torchaudio==2.7.0 \
-    --index-url https://download.pytorch.org/whl/cu121
+    --index-url https://download.pytorch.org/whl/cu126
 
-# CUDA 11.8
+# NVIDIA GPU, CUDA 12.8 (required by RTX 50-series GPUs)
+pip install torch==2.7.0 torchvision==0.22.0 torchaudio==2.7.0 \
+    --index-url https://download.pytorch.org/whl/cu128
+
+# NVIDIA GPU, CUDA 11.8 (older drivers)
 pip install torch==2.7.0 torchvision==0.22.0 torchaudio==2.7.0 \
     --index-url https://download.pytorch.org/whl/cu118
 
-# Apple Silicon (MPS) or CPU
+# No NVIDIA GPU, Windows or Linux (CPU only)
 pip install torch==2.7.0 torchvision==0.22.0 torchaudio==2.7.0 \
-    --extra-index-url https://download.pytorch.org/whl/nightly/cpu 
+    --index-url https://download.pytorch.org/whl/cpu
+
+# Mac with Apple Silicon (M1 and later; MPS acceleration included)
+pip install torch==2.7.0 torchvision==0.22.0 torchaudio==2.7.0
+
+# Mac with an Intel processor (markedly slower than Apple Silicon): PyTorch no
+# longer publishes these builds on PyPI, but conda-forge does
+conda install -c conda-forge pytorch=2.7.0 torchvision=0.22.0
 
 # Install SAM2++ dependencies and packages
 pip install -r sam2_plus/requirements.txt
@@ -78,9 +151,14 @@ pip install -e ".[dev]"
 python setup.py build_ext --inplace
 
 # Verify installation
-# On macOS, omit "from sam2 import _C" — the extension is not built
 python -c "import torch; print(torch.__version__); from sam2_plus.build_sam import build_sam2_video_predictor_plus; print('OK')"
+
+# NVIDIA GPU only: check that the GPU is seen and the extension was built
+python -c "import torch; print(torch.cuda.is_available()); from sam2 import _C; print('extension OK')"
 ```
+
+On an Apple Silicon Mac, `python -c "import torch; print(torch.backends.mps.is_available())"`
+should print `True`.
 
 ## GUI Dependencies
 
@@ -150,11 +228,19 @@ git clone https://github.com/nicolasaudibert/VOLUTE.git ../VOLUTE-src
 rsync -a --exclude .git ../VOLUTE-src/ tools/
 ```
 
-Keep the clone: updating later is `git -C ../VOLUTE-src pull` followed by the same `rsync`.
-Delete it with `rm -rf ../VOLUTE-src` if you would rather not.
+Windows has no `rsync`; `robocopy`, built in, does the same from a Command Prompt
+(it reports success with an exit code of 1, not 0):
 
-`rsync` copies the hidden `.gitignore` along with the rest; `cp -R` would too, but it would
-also bring the `.git` directory, which is why the command excludes it.
+```batch
+git clone https://github.com/nicolasaudibert/VOLUTE.git ..\VOLUTE-src
+robocopy ..\VOLUTE-src tools /E /XD .git
+```
+
+Keep the clone: updating later is `git -C ../VOLUTE-src pull` followed by the same copy.
+Delete it if you would rather not.
+
+The copy brings the hidden `.gitignore` along with the rest, and leaves out the `.git`
+directory, which `cp -R` or a plain drag and drop would bring too.
 
 Verify the installation structure:
 
@@ -203,6 +289,9 @@ the `volute_config.yaml` configuration.
 
 ## MedSAM2 Setup (Optional)
 
+The [one-command installer](#quick-installation-windows-and-macos) downloads MedSAM2 when it is
+chosen; the steps below are for a manual installation.
+
 SAM2++ bundles the `sam2` package internally. MedSAM2 also depends on `sam2`, so it
 is expected to work with this bundled version — **compatibility should be verified on
 first use**, as minor API differences between the bundled copy and the original Meta
@@ -222,23 +311,8 @@ bash download.sh
 
 ### 2. Create Symbolic Links
 
-#### macOS and Linux
-
-```bash
-cd /path/to/SAM2-Plus
-
-chmod +x tools/setup_medsam2_symlinks.sh
-tools/setup_medsam2_symlinks.sh /path/to/MedSAM2
-```
-
-#### Windows (Administrator)
-
-```batch
-cd C:\path\to\SAM2-Plus
-tools\setup_medsam2_symlinks.bat C:\path\to\MedSAM2
-```
-
-### Manual Symlink Creation (Alternative)
+The checkpoints and configurations stay in the MedSAM2 directory; links make them appear
+where VOLUTE looks for them.
 
 #### macOS/Linux
 
@@ -254,7 +328,7 @@ ln -s /path/to/MedSAM2/checkpoints/MedSAM2_2411.pt   checkpoints/MedSAM2_2411.pt
 ln -s /path/to/MedSAM2/sam2/configs sam2/configs/medsam2_configs
 ```
 
-#### Windows (Administrator PowerShell)
+#### Windows (PowerShell as Administrator, or with Developer Mode enabled)
 
 ```powershell
 cd C:\path\to\SAM2-Plus
@@ -274,37 +348,21 @@ ls -la sam2/configs/medsam2_configs
 
 ## Configuration
 
-The active backend (SAM2, MedSAM2, SAM2++) is controlled via `volute_config.yaml`.
-Model paths are set in this file but marked informative only — actual path resolution
-is handled in `main_window.py` for Hydra compatibility.
+Settings live in `tools/volute_config.yaml`, which documents each of them, and are all
+editable from **File › Settings…**; the full list is under *Configuration* in
+[DOCUMENTATION.md](DOCUMENTATION.md#configuration).
 
-```yaml
-# SAM2 Video Segmentation GUI Configuration
-
-ui:
-  default_language: "en"              # "en", "fr", etc.
-  progress_details_font_size: 12
-  import_confirmation_default: "yes"
-
-export:
-  coordinates_format: "json"          # "json", "csv", "pickle"
-  centroids_format: "excel"           # "excel", "csv", "json"
-  image_quality: 95                   # JPEG quality (1-100)
-
-debug:
-  enabled: false
-  show_filename_mappings: false
-  show_mask_sync_details: false
-
-performance:
-  image_cache_size: 32                # LRU cache size for lazy frame loading (0 = unlimited)
-```
+The model is chosen at startup, in the application's model chooser, or with `--model` on
+the command line. The model paths in `volute_config.yaml` are informative only: the
+configuration and checkpoint files are resolved in `VOLUTE.py`, relative to the SAM2-Plus
+directory, for Hydra compatibility.
 
 ### Available Languages
 
-Translation files are in `tools/volute/translations/`. English (`en.tsv`) and French
-(`fr.tsv`) are included. Add further languages by creating a TSV file with the same
-key structure.
+English is built into the application, and French is shipped in
+`tools/volute/translations/fr.tsv`. A further language takes a new TSV file in that
+directory, started from `template.tsv`, with no code change — see
+`tools/volute/translations/translation_readme.md`.
 
 ## Running the Application
 
@@ -318,14 +376,18 @@ cd /path/to/SAM2-Plus
 conda activate sam2_plus
 export PYTHONPATH=$PYTHONPATH:$(pwd)   # if not already in your shell profile
 
-# Run with SAM2 backend (default)
+# Start, choosing the model in the application
 python tools/VOLUTE.py
+
+# Run with SAM2 backend
+python tools/VOLUTE.py --model sam2
 
 # Run with MedSAM2 backend
 python tools/VOLUTE.py --model medsam2
 
-# Run with SAM2++ backend
+# Run with SAM2++ backend, mask or point tracking mode
 python tools/VOLUTE.py --model sam2plus
+python tools/VOLUTE.py --model sam2plus --task point
 
 # Enable debug mode
 python tools/VOLUTE.py --debug
@@ -334,10 +396,11 @@ python tools/VOLUTE.py --debug
 ### Command-Line Options
 
 ```
---model {sam2,medsam2,sam2plus}   Backend to use (default: sam2)
+--model {sam2,medsam2,sam2plus}   Backend to use; skips the startup model chooser
+--task {mask,point}               SAM2++ tracking task (sam2plus only)
 --config PATH                     Override config file path
 --checkpoint PATH                 Override checkpoint file path
---working-dir PATH                Set working directory
+--working-dir PATH                Set working directory (default: the SAM2-Plus directory)
 --debug                           Enable verbose debug output
 ```
 
@@ -358,9 +421,28 @@ python tools/VOLUTE.py \
 
 ### Launcher Scripts
 
-Platform-specific launcher scripts can be generated with `install_launchers_unix.sh`
-(macOS/Linux) or `install_launchers_windows.bat`. Ensure they activate the `sam2_plus`
-conda environment and set `PYTHONPATH` before launching.
+Ready-made launchers, one per model plus one that asks, are generated into
+`tools/launchers/`:
+
+- **Windows**: double-click `tools\install_launchers_windows.bat`, or run it from a
+  Command Prompt. It finds the environment's Python — the one given as argument, else
+  that of the active conda environment, else `python` on `PATH`, else a `sam2_plus`
+  environment of Miniforge, Miniconda or Anaconda — and keeps the first that can import
+  SAM2, PyTorch and PyQt5. The launchers it
+  writes run that interpreter directly, so they work by double-click with no environment
+  activated, and a **VOLUTE** shortcut is added to the Desktop. Should the application
+  stop on an error, the launcher's window stays open to show it. Re-run the script
+  after moving the installation or recreating the environment.
+
+  ```batch
+  tools\install_launchers_windows.bat
+  tools\install_launchers_windows.bat C:\path\to\env\python.exe
+  ```
+
+- **macOS/Linux**: `bash tools/install_launchers_Unix_MacOS.sh`. These launchers run
+  whichever `python` is on `PATH`, so the `sam2_plus` environment must be active. On
+  macOS, `bash tools/install_app_bundle_macos.sh` instead builds a double-clickable
+  `VOLUTE.app` bound to the environment's interpreter, with no activation needed.
 
 ## Troubleshooting
 
@@ -406,16 +488,52 @@ python tools/sam2_misc_patch/patch_sam2_misc.py    # apply
 python tools/sam2_misc_patch/restore_sam2_misc.py  # revert
 ```
 
-Worth applying when running on macOS (Apple Silicon or Intel), or on Windows/Linux
-without an NVIDIA GPU, and mask quality matters enough to want the hole-filling step.
+Worth applying when running on macOS (Apple Silicon or Intel), on Windows/Linux without
+an NVIDIA GPU, or on an NVIDIA machine where the extension was not compiled, and mask
+quality matters enough to want the hole-filling step.
 
-Not needed on a CUDA machine: the script detects CUDA and exits without modifying
-anything, the compiled extension being faster than the fallback. `scipy` is already a
-required dependency above, so nothing extra is installed.
+Not needed on a CUDA machine where the extension was built: the script detects that it
+imports and exits without modifying anything, the compiled extension being faster than
+the fallback. `scipy` is already a required dependency above, so nothing extra is
+installed.
 
 Developed against SAM2-Plus 1.0; a future SAM2 release may make it unnecessary, and the
 script refuses to touch a `misc.py` it does not recognise. See
 `tools/sam2_misc_patch/SAM2_PATCH_README.md` for details and compatibility notes.
+
+#### Compiling the CUDA extension instead
+
+The fallback gives the same masks, and costs little: in a measurement on an Apple Silicon
+Mac (SAM2.1 Large, two objects, 40 frames), it took 0.5 % of the propagation time, and its
+share should stay within a few percent on a fast NVIDIA GPU. Compiling the extension is
+possible on an NVIDIA machine, but needs **administrator rights** to install its tools:
+the CUDA toolkit of the version PyTorch was built for
+(`python -c "import torch; print(torch.version.cuda)"`) and, on Windows, Visual Studio
+Build Tools with the *Desktop development with C++* workload. On Windows, run the commands
+below from the *x64 Native Tools Command Prompt for VS*, which puts the compiler on `PATH`.
+`SAM2_BUILD_ALLOW_ERRORS=0` makes a failed build stop with its error, where SAM2-Plus would
+otherwise skip the extension silently.
+
+- **New manual installation**: build the extension as in
+  [SAM2++ Installation](#sam2-installation) (`python setup.py build_ext --inplace`), and
+  do not apply the patch; the check given there, `from sam2 import _C`, confirms the build.
+- **Existing installation where the patch was applied** — the one-command installer
+  applies it on every machine: build the extension, then revert the patch, without which
+  the fallback stays in use. With the installation's own Python,
+  `<folder>/miniforge3/envs/volute/bin/python`, or
+  `<folder>\miniforge3\envs\volute\python.exe` on Windows, from its `SAM2-Plus`
+  folder:
+
+  ```bash
+  SAM2_BUILD_ALLOW_ERRORS=0 python setup.py build_ext --inplace   # Windows: set SAM2_BUILD_ALLOW_ERRORS=0 first
+  python tools/sam2_misc_patch/restore_sam2_misc.py
+  python -c "import torch; print(torch.cuda.is_available()); from sam2 import _C; print('extension OK')"
+  ```
+
+  Running the installer again afterwards keeps the extension: its patch step finds that
+  the extension imports and leaves `misc.py` alone. Should the extension stop loading
+  later, after PyTorch is replaced following an NVIDIA driver update for instance, that
+  same step applies the fallback again; rebuild the extension to return to it.
 
 ### "ffmpeg was not found" when extracting frames from a video
 

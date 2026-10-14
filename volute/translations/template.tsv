@@ -26,10 +26,11 @@ remove_points_tooltip	Click and drag to select area | All points in rectangle wi
 define_box	Define box
 define_box_tooltip	Click and drag to define a bounding box | One box per object and frame, combined with that frame's points
 remove_box_btn	Remove box
-box_points_outside_title	Points contradicting the box
-box_points_outside_msg	{0} positive and {1} negative point(s) of this object on this frame lie outside the box just drawn. SAM2 receives the box and the points together, so these points contradict the box rather than being ignored.
+box_points_outside_title	Points outside the box
+box_points_outside_msg	{0} positive and {1} negative point(s) of this object on this frame lie outside the box just drawn. SAM2 receives the box and the points together: positive points outside the box contradict it, while negative ones agree with it but may no longer be needed.
 box_points_outside_delete_hint	Delete the points outside the box?
-point_outside_box_confirm	This point lies outside the box defined for this object on this frame. SAM2 receives the box and the points together, so this point will contradict the box rather than being ignored. Add it anyway?
+point_outside_box_confirm	This positive point lies outside the box defined for this object on this frame. SAM2 receives the box and the points together, so this point will contradict the box rather than being ignored. Add it anyway?
+point_outside_box_confirm_negative	This negative point lies outside the box defined for this object on this frame. It does not contradict the box: SAM2 receives the box and the points together, and this point marks an area to leave out of the mask, useful where the mask spills over the box. Add it?
 box_delete_imported_mask	Delete the existing mask right away
 strict_box_clipping	Masks strictly confined to box:
 strict_box_clipping_tooltip	Clears every predicted pixel outside the box. Applies to subsequent predictions and propagations only: a mask already clipped cannot be restored by turning this option back off.
@@ -118,6 +119,8 @@ model_desc_medsam2_heart	Cardiac ultrasound
 model_desc_medsam2_liver	Liver lesions in MRI
 model_desc_sam2plus_mask	Drop-in SAM2 replacement
 model_desc_sam2plus_point	Point trajectories
+model_not_installed	not installed
+model_missing_tooltip	This model is not installed. Run the VOLUTE installation command again to add it.
 settings_menu	Settings…
 settings_title	Settings
 settings_tab_interface	Interface
@@ -148,6 +151,12 @@ settings_restore_confirm	Restore every setting to its default value? Nothing is 
 settings_restart_note	Most settings take effect the next time the application starts.
 settings_saved	Settings saved.
 settings_save_failed	The configuration file could not be written.
+settings_pacing_file	Frame durations of the file	Choice for the progress animation pace: plays at the file's own frame durations
+settings_pacing_progress	One frame per progress update	Choice for the progress animation pace: advances with the task's progress
+settings_format_json	JSON	Export format name in the settings
+settings_format_csv	CSV	Export format name in the settings
+settings_format_pickle	Pickle	Export format name in the settings
+settings_format_excel	Excel (XLSX)	Export format name in the settings
 about_version	Version {0}
 about_credits_title	Credits	Section heading
 about_credits_body	Developed by <a href='https://lpp.cnrs.fr/nicolas-audibert/'><b>Nicolas Audibert</b></a> with the assistance of <a href='https://claude.ai'>Claude</a> (Anthropic) as an AI pair-programming assistant.	Credits text
@@ -306,6 +315,8 @@ batch_output_folder	Output folder:	Label for output folder field
 batch_output_placeholder	Select output folder…	Placeholder text for output folder field
 batch_ready	Ready.	Initial status label text
 batch_opt_propagate	Propagate masks	Checkbox label
+batch_opt_propagate_points	Propagate points	Checkbox label (SAM2++ point tracking mode)
+batch_opt_export_tracked_points_tooltip	Available when VOLUTE runs SAM2++ in point tracking mode	Tooltip of the disabled Export tracked points checkbox
 batch_opt_export_images	Export masked images	Checkbox label
 batch_opt_state_predict	Export inference state (prediction)	Checkbox label
 batch_opt_state_prop	Export inference state (propagation)	Checkbox label
@@ -328,6 +339,56 @@ batch_cancel_requested	Cancellation requested…	Log message
 batch_status_ok	OK	Item result status
 batch_status_errors	ERRORS	Item result status
 batch_complete	Batch complete: {0}/{1} succeeded.	Log message with placeholders
+batch_table_tooltip	Double-click a cell to edit directly.\nLeave 'Ref Frame' empty to use the first frame with points.	Tooltip of the batch items table
+batch_file_not_found	File not found: {0}	Invalid path in the batch items
+batch_folder_not_found	Folder not found: {0}	Invalid path in the batch items
+batch_item_result	[{0}/{1}] {2}: {3}	Log line after each item: index, total, folder, status
+batch_log_loading_project	Loading {0}…	Batch log: project file being loaded
+batch_log_loading_images	Loading images…	Batch log
+batch_log_importing_tracked_points	Importing tracked points…	Batch log
+batch_log_reference_frame	Reference frame: {0} / {1}	Batch log: reference frame index / last frame index
+batch_log_predicting_reference	Predicting reference frame…	Batch log
+batch_log_exporting_state_predict	Exporting inference state (prediction)…	Batch log
+batch_log_propagating	Propagating masks…	Batch log
+batch_log_propagating_points	Propagating tracked points…	Batch log (SAM2++ point tracking mode)
+batch_log_exporting_state_propagate	Exporting inference state (propagation)…	Batch log
+batch_log_exporting_images	Exporting masked images…	Batch log
+batch_log_images_exported	{0} images exported	Batch log: number of images exported
+batch_log_exporting_centroids	Exporting centroids…	Batch log
+batch_log_exporting_coordinates	Exporting mask coordinates…	Batch log
+batch_log_exporting_contours	Exporting contour coordinates…	Batch log
+batch_log_exporting_hulls	Exporting hull coordinates…	Batch log
+batch_log_exporting_tracked_points	Exporting tracked points…	Batch log
+batch_log_exporting_closest_points	Exporting closest mask points…	Batch log
+batch_log_exporting_point_mask_analysis	Exporting point/mask analysis…	Batch log
+batch_progress_predicting_object	Predicting object {0} ({1}/{2})	Batch progress: object id, rank, count
+batch_progress_prediction_done	Prediction complete	Batch progress
+batch_progress_forward	Forward propagation	Batch progress: step name
+batch_progress_backward	Backward propagation	Batch progress: step name
+batch_progress_point_forward	Forward point-track propagation	Batch progress: step name
+batch_progress_point_backward	Backward point-track propagation	Batch progress: step name
+batch_progress_frame	{0}… (frame {1})	Batch progress: step name, frame index
+batch_error_step	{0} error: {1}	Batch error: step name, error detail
+batch_error_prediction	Prediction error (obj {0}): {1}	Batch error: object id, error detail
+batch_error_no_objects	No objects found in .volute file	Batch error
+batch_error_no_images	No images found in {0}	Batch error: folder
+batch_error_sam2_init	SAM2 initialization failed	Batch error
+batch_error_state_predict	State export (predict): {0}	Batch error: error detail
+batch_error_state_propagate	State export (propagate): {0}	Batch error: error detail
+batch_error_images	Image export: {0}	Batch error: error detail
+batch_error_centroids	Centroids export: {0}	Batch error: error detail
+batch_error_coordinates	Coordinates export: {0}	Batch error: error detail
+batch_error_contours	Contour coordinates export: {0}	Batch error: error detail
+batch_error_hulls	Hull coordinates export: {0}	Batch error: error detail
+batch_error_tracked_points	Tracked points export: {0}	Batch error: error detail
+batch_error_closest_points	Closest mask points export: {0}	Batch error: error detail
+batch_error_point_mask_analysis	Point/mask analysis export: {0}	Batch error: error detail
+batch_error_unexpected	Unexpected error: {0}	Batch error: error detail
+batch_warning_frame_count_mismatch	Tracked points frame count mismatch: {0} imported vs {1} in folder	Batch warning
+batch_warning_no_filename_match	None of the imported filenames match the current image folder	Batch warning
+batch_warning_filenames_unmatched	{0} imported filename(s) unmatched and skipped	Batch warning
+batch_warning_out_of_bounds	Out-of-bounds imported points for: {0}	Batch warning: point names
+batch_warning_tracked_points_skipped	Tracked points import skipped: {0}	Batch warning: error detail
 batch_col_tracked_points_file	Tracked Points File	Table column header
 batch_browse_tracked_points	Browse Tracked Points…	Button text
 

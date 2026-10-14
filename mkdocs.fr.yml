@@ -1,0 +1,97 @@
+# French site, built by build_docs.py from the tree it prepares in
+# .docs_build/fr. It differs from mkdocs.yml, which builds the English site and
+# comments the settings, only in site_url, docs_dir, site_dir, theme.language,
+# and the text shown to readers: description, palette toggle names, navigation
+# titles.
+
+site_name: VOLUTE
+site_description: Segmentation vidéo et suivi de points, interactifs ou par lot, avec SAM 2
+site_url: https://nicolasaudibert.github.io/VOLUTE/fr/
+repo_url: https://github.com/nicolasaudibert/VOLUTE
+repo_name: nicolasaudibert/VOLUTE
+
+docs_dir: .docs_build/fr
+site_dir: site/fr
+
+theme:
+  name: material
+  variant: modern
+  language: fr
+  custom_dir: overrides
+  logo: lockup_horizontal.svg
+  favicon: favicon.png
+  features:
+    - content.code.copy
+    - navigation.footer
+    - search.highlight
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Passer en mode sombre
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Passer en mode clair
+
+extra:
+  logo_dark: lockup_horizontal_dark.svg
+  alternate:
+    - name: English
+      link: /VOLUTE/
+      lang: en
+    - name: Français
+      link: /VOLUTE/fr/
+      lang: fr
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/external-links.js
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - footnotes
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+
+plugins:
+  - search
+  - exclude:
+      glob:
+        - banner.png
+
+nav:
+  - Accueil: index.md
+  - Installation:
+      - Windows: install-windows.md
+      - macOS: install-macos.md
+      - Linux et installation manuelle: https://github.com/nicolasaudibert/VOLUTE/blob/main/INSTALL.md
+  - Tutoriel:
+      - Présentation: tutorial/index.md
+      - 1. Avant de commencer: tutorial/start.md
+      - 2. Charger les trames: tutorial/load-frames.md
+      - 3. Un premier objet: tutorial/first-object.md
+      - 4. Plusieurs objets: tutorial/objects.md
+      - 5. Corriger les masques: tutorial/corrections.md
+      - 6. Suivre les objets dans la vidéo: tutorial/tracking.md
+      - 7. Affichage et points de référence: tutorial/display.md
+      - 8. Exporter les résultats: tutorial/export.md
+      - 9. Enregistrer, reprendre, traiter par lot: tutorial/project.md
+      - 10. Suivre des points avec SAM2++: tutorial/points.md
+      - 11. Paramètres, langue, raccourcis: tutorial/settings.md
+  - FAQ: faq.md
+  - Documentation de référence (en anglais): https://github.com/nicolasaudibert/VOLUTE/blob/main/DOCUMENTATION.md
