@@ -5,11 +5,12 @@ one self-contained folder, then creates the launchers. Run again on an existing
 installation, it updates VOLUTE and adds any model not yet downloaded, keeping
 the settings.
 
-Started by install_volute_macos.sh or install_volute_windows.ps1, which install
-Miniforge into the folder first and run this script with Miniforge's own
-Python. It uses the standard library only, and touches nothing outside the
-folder but the launchers: the Desktop shortcut on Windows, VOLUTE.app in
-~/Applications on macOS.
+Started by install_volute_macos.sh, install_volute_linux.sh or
+install_volute_windows.ps1, which install Miniforge into the folder first and
+run this script with Miniforge's own Python. It uses the standard library only,
+and touches nothing outside the folder but the launchers: the Desktop shortcut
+on Windows, VOLUTE.app in ~/Applications on macOS, the applications-menu entry
+on Linux.
 
     python volute_installer.py --prefix DIR --miniforge DIR [options]
 """
@@ -38,6 +39,14 @@ TORCH_VERSION = "2.7.0"
 TORCHVISION_VERSION = "0.22.0"
 PYTORCH_INDEX = "https://download.pytorch.org/whl/"
 
+# PyTorch builds for NVIDIA GPUs, newest first: index, lowest CUDA version the
+# driver must support, lowest compute capability the build runs on. The CUDA
+# 12.8 build of PyTorch 2.7 starts at Turing (7.5); the CUDA 12.6 and 11.8
+# builds still cover Maxwell, Pascal and Volta (5.0 to 7.0).
+CUDA_BUILDS = (("cu128", (12, 8), (7, 5)),
+               ("cu126", (12, 6), (5, 0)),
+               ("cu118", (11, 8), (5, 0)))
+
 # setup.py of SAM2-Plus requires a setuptools within this range to build
 SETUPTOOLS_SPEC = "setuptools>=62.3.0,<75.9"
 
@@ -53,6 +62,27 @@ CONDA_CHANNELS = ["--override-channels", "--channel", "conda-forge"]
 # Packages VOLUTE imports beyond those SAM2-Plus brings
 GUI_PACKAGES = ["PyQt5", "matplotlib", "scipy", "pyyaml", "pandas", "openpyxl",
                 "scikit-image"]
+
+# On Linux, PyQt5 comes from conda-forge instead of PyPI: the PyPI wheel needs
+# X11 libraries (libxcb-*) a fresh Ubuntu often lacks, and installing them
+# takes administrator rights, while conda-forge's Qt brings them into the
+# environment
+CONDA_PYQT = "pyqt=5"
+
+# Opens a window for an instant: importing PyQt5 succeeds even when Qt cannot
+# load its platform plugin, which only fails once an application starts
+QT_WINDOW_CHECK = (
+    "import sys\n"
+    "from PyQt5.QtCore import QTimer\n"
+    "from PyQt5.QtWidgets import QApplication, QWidget\n"
+    "app = QApplication(sys.argv)\n"
+    "window = QWidget()\n"
+    "window.setWindowTitle('VOLUTE installer check')\n"
+    "window.show()\n"
+    "QTimer.singleShot(300, app.quit)\n"
+    "app.exec_()\n"
+    "print(app.platformName())\n"
+)
 
 MEDSAM2_CHECKPOINTS = "https://huggingface.co/wanglab/MedSAM2/resolve/main/"
 # The one config the MedSAM2 checkpoints need, at a fixed commit of its
@@ -94,6 +124,7 @@ KEPT_ON_UPDATE = {"volute_config.yaml"}
 USER_AGENT = "VOLUTE-installer"
 IS_WINDOWS = sys.platform == "win32"
 IS_MACOS = sys.platform == "darwin"
+IS_LINUX = sys.platform.startswith("linux")
 
 
 class InstallError(Exception):
@@ -323,6 +354,15 @@ class Installer:
         """True when the environment's Python runs code without error."""
         return self.output([self.python, "-c", code]) is not None
 
+    def conda_has(self, package):
+        """True when conda lists package in the environment."""
+        text = self.output([self.conda, "list", "--prefix", self.env, "--json",
+                            f"^{package}$"])
+        try:
+            return bool(json.loads(text)) if text else False
+        except ValueError:
+            return False
+
     # ------------------------------------------------------------------
     # 1. System
     # ------------------------------------------------------------------
@@ -334,6 +374,15 @@ class Installer:
             return None
         match = re.search(r"CUDA Version:\s*(\d+)\.(\d+)", text)
         return (int(match.group(1)), int(match.group(2))) if match else None
+
+    def detect_compute_capability(self):
+        """Lowest compute capability among the NVIDIA GPUs, or None when the
+        driver does not report it."""
+        text = self.output(["nvidia-smi", "--query-gpu=compute_cap",
+                            "--format=csv,noheader"])
+        found = [(int(m.group(1)), int(m.group(2)))
+                 for m in re.finditer(r"(\d+)\.(\d+)", text or "")]
+        return min(found) if found else None
 
     def choose_torch(self):
         """PyTorch build to install: 'pypi', 'conda-forge', 'cpu' or a
@@ -350,18 +399,38 @@ class Installer:
         cuda = self.detect_cuda()
         if cuda is None:
             return "cpu", "No NVIDIA GPU found: CPU only, so segmentation will be slow"
-        for index, minimum in (("cu128", (12, 8)), ("cu126", (12, 6)), ("cu118", (11, 8))):
+        capability = self.detect_compute_capability()
+        gpu = "NVIDIA GPU" if capability is None else (
+            f"NVIDIA GPU of compute capability {capability[0]}.{capability[1]}")
+        if capability is not None and capability < min(c for *_, c in CUDA_BUILDS):
+            return "cpu", (f"{gpu}, too old for PyTorch: CPU only, so segmentation "
+                           "will be slow")
+        for index, minimum, lowest in CUDA_BUILDS:
+            if capability is not None and capability < lowest:
+                continue
             if cuda >= minimum:
-                return index, (f"NVIDIA GPU, driver supporting CUDA {cuda[0]}.{cuda[1]}: "
+                return index, (f"{gpu}, driver supporting CUDA {cuda[0]}.{cuda[1]}: "
                                f"PyTorch for CUDA {minimum[0]}.{minimum[1]}")
         return "cpu", (f"NVIDIA driver too old (CUDA {cuda[0]}.{cuda[1]}): CPU only. "
                        "Updating the NVIDIA driver, then running the installer "
                        "again, would enable the GPU")
 
+    @staticmethod
+    def system_name():
+        """The operating system, by its distribution's name on Linux."""
+        if IS_LINUX:
+            try:
+                name = platform.freedesktop_os_release().get("PRETTY_NAME")
+            except OSError:
+                name = None
+            if name:
+                return f"{name} (Linux {platform.release()})"
+        return f"{platform.system()} {platform.release()}"
+
     def check_system(self):
         self.step("Checking the computer")
         self.torch_build, torch_reason = self.choose_torch()
-        self.say(f"    {platform.system()} {platform.release()}, {platform.machine()}")
+        self.say(f"    {self.system_name()}, {platform.machine()}")
         self.say(f"    {torch_reason}")
         self.say(f"    Installation folder: {self.prefix}")
 
@@ -451,11 +520,15 @@ class Installer:
         self.step("Python environment")
         if self.python.exists():
             self.say("    Already present.")
+            if IS_LINUX and not self.conda_has("pyqt"):
+                self.run([self.conda, "install", "--yes", "--prefix", self.env,
+                          *CONDA_CHANNELS, CONDA_PYQT], what="Installing PyQt5")
             return
         # ffmpeg comes with the environment: frame extraction from a video
         # relies on it, and conda-forge builds include ffprobe
         self.run([self.conda, "create", "--yes", "--prefix", self.env, *CONDA_CHANNELS,
-                  f"python={PYTHON_VERSION}", "pip", "ffmpeg"],
+                  f"python={PYTHON_VERSION}", "pip", "ffmpeg",
+                  *([CONDA_PYQT] if IS_LINUX else [])],
                  what="Creating the Python environment")
 
     # ------------------------------------------------------------------
@@ -585,7 +658,8 @@ class Installer:
             self.say(f"    Updated from {before} to {after}; settings kept.")
         else:
             self.say(f"    Version {after}.")
-        self.pip(*GUI_PACKAGES, what="Installing the VOLUTE dependencies")
+        packages = [p for p in GUI_PACKAGES if not (IS_LINUX and p == "PyQt5")]
+        self.pip(*packages, what="Installing the VOLUTE dependencies")
 
     # ------------------------------------------------------------------
     # 6. SAM2 post-processing patch
@@ -644,8 +718,59 @@ class Installer:
                       "--python", self.python, "--output", applications],
                      cwd=self.root, what="Creating VOLUTE.app")
         else:
-            self.run(["bash", self.tools / "install_launchers_Unix_MacOS.sh"],
+            self.check_qt_window()
+            self.run(["bash", self.tools / "install_launchers_Unix_MacOS.sh",
+                      "--python", self.python],
                      cwd=self.root, what="Creating the launchers")
+            self.write_desktop_entry()
+
+    def check_qt_window(self):
+        """Open a Qt window for an instant, so that a missing system library
+        shows here rather than when VOLUTE is first started. Skipped without
+        a graphical session, over SSH for instance."""
+        if not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
+            self.say("    No graphical session: the Qt window check is skipped.")
+            return
+        self.log("$ <Qt window check>")
+        try:
+            result = subprocess.run([str(self.python), "-c", QT_WINDOW_CHECK],
+                                    capture_output=True, text=True, timeout=120)
+        except (OSError, subprocess.SubprocessError) as e:
+            raise InstallError(f"Could not run the Qt window check: {e}")
+        for line in (result.stdout + result.stderr).splitlines():
+            self.log("  | " + line)
+        if result.returncode != 0:
+            self.say(result.stderr.strip())
+            raise InstallError(
+                "Qt could not open a window; its messages are above. Running "
+                "the installer again with QT_DEBUG_PLUGINS=1 set shows which "
+                "library is missing.")
+        self.say(f"    Qt window check passed ({result.stdout.strip()}).")
+
+    @property
+    def desktop_entry(self):
+        data_home = os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share"
+        return Path(data_home) / "applications" / "volute.desktop"
+
+    def write_desktop_entry(self):
+        """The VOLUTE entry of the applications menu, from which it can be
+        pinned to the dock. None on the Desktop, where Ubuntu asks first to
+        allow launching it."""
+        launcher = self.tools / "launchers" / "volute.sh"
+        icon = self.tools / "volute" / "resources" / "icon_512.png"
+        self.desktop_entry.parent.mkdir(parents=True, exist_ok=True)
+        self.desktop_entry.write_text(
+            "[Desktop Entry]\n"
+            "Type=Application\n"
+            "Name=VOLUTE\n"
+            "Comment=Video object labeling, user-guided tracking and extraction\n"
+            f"Exec={launcher}\n"
+            f"Icon={icon}\n"
+            "Terminal=false\n"
+            "Categories=Science;Graphics;\n"
+            "StartupWMClass=VOLUTE\n",
+            encoding="utf-8")
+        self.say(f"    Applications menu entry: {self.desktop_entry}")
 
     def summary(self):
         self.say("")
@@ -660,11 +785,16 @@ class Installer:
             self.say(f"folder ({Path.home() / 'Applications' / 'VOLUTE.app'});")
             self.say("drag it to the Dock to keep it at hand.")
         else:
-            self.say(f"Start it with {self.tools / 'launchers' / 'volute.sh'}")
+            self.say("Start it with VOLUTE in the applications menu, or with")
+            self.say(f"  {self.tools / 'launchers' / 'volute.sh'}")
         self.say("")
         self.say("ffmpeg, which extracts frames from a video, is included. GIMP, for")
         self.say("retouching masks by hand, is not: if you need it, install GIMP 3.0")
-        self.say("or later from https://www.gimp.org")
+        if IS_LINUX:
+            self.say("or later, as a Flatpak (Flathub) or a Snap: the apt package of")
+            self.say("Ubuntu 22.04 and 24.04 is GIMP 2.10, which VOLUTE cannot use.")
+        else:
+            self.say("or later from https://www.gimp.org")
         self.say("")
         self.say("To update VOLUTE or add a model, run the installer again.")
         self.say(f"To uninstall, delete the folder {self.prefix}")
@@ -672,6 +802,8 @@ class Installer:
             self.say("and the VOLUTE shortcut on the Desktop.")
         elif IS_MACOS:
             self.say("and VOLUTE.app in the Applications folder of your home folder.")
+        else:
+            self.say(f"and the file {self.desktop_entry}")
         self.say(f"Installation log: {self.log_path}")
 
     def install(self):

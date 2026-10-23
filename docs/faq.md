@@ -15,9 +15,10 @@ example, or in the reference documentation, the files `INSTALL.md`, `README.md` 
 
 ### Do I need to know Python, or to install it first?
 
-No. On Windows and macOS, one command installs everything VOLUTE needs, Python included;
-the [Windows](install-windows.md) and [macOS](install-macos.md) guides walk through it
-without assuming any knowledge of the command line.
+No. On Windows, macOS and Linux (Ubuntu), one command installs everything VOLUTE needs,
+Python included; the [Windows](install-windows.md), [macOS](install-macos.md) and
+[Linux](install-linux.md) guides walk through it without assuming any knowledge of the
+command line.
 
 ### Will the installation change my existing Python, Anaconda or Miniconda?
 
@@ -27,9 +28,11 @@ that folder and the shortcut.
 
 ### Can I install VOLUTE on Linux?
 
-Yes, by hand: the reference documentation, on GitHub, describes each step in
-[INSTALL.md](https://github.com/nicolasaudibert/VOLUTE/blob/main/INSTALL.md). For now, the
-one-command installer covers Windows and macOS only.
+Yes. On Ubuntu 22.04 and 24.04, one command installs it, as on Windows and macOS: see
+the [Linux](install-linux.md) guide. That command may suit other distributions but has not
+been tested on them; failing that, the reference documentation, on GitHub, describes the
+installation by hand in
+[INSTALL.md](https://github.com/nicolasaudibert/VOLUTE/blob/main/INSTALL.md).
 
 ### Does VOLUTE need an Internet connection?
 
@@ -160,8 +163,9 @@ relying on computing them again, and note the model used.
 
 Yes: **File › Export Frame for Editing…** exports a frame and its masks for GIMP or
 another image editor, and **File › Import Masks…** brings the edited masks back. GIMP is not
-installed with VOLUTE: download it from [gimp.org](https://www.gimp.org) (version 3.0 or later). In
-the tutorial:
+installed with VOLUTE: download it from [gimp.org](https://www.gimp.org) (version 3.0 or later);
+on Ubuntu 22.04 and 24.04, install it as a Snap or a Flatpak, since the `apt` version is
+2.10, which is not compatible with VOLUTE. In the tutorial:
 [Retouching a mask by hand in GIMP](tutorial/corrections.md#retouching-a-mask-by-hand-in-gimp),
 in step 5. In the reference documentation, on GitHub:
 [GIMP-assisted mask editing](https://github.com/nicolasaudibert/VOLUTE/blob/main/DOCUMENTATION.md#gimp-assisted-mask-editing-mask-mode-only).

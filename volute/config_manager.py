@@ -32,6 +32,8 @@ class ConfigManager:
             'ui': {
                 'default_language': 'en',
                 'progress_details_font_size': 12,
+                'progress_animation_show': True,
+                'progress_animation_size': 100,
                 'progress_animation_pacing': 'file',
                 'import_confirmation_default': 'yes',
                 'native_file_dialogs': True,
@@ -436,6 +438,23 @@ class ConfigManager:
         """Get progress dialog details font size"""
         return self.get('ui.progress_details_font_size', 12)
     
+    # Range of ui.progress_animation_size, a percentage of the default height
+    PROGRESS_ANIMATION_SIZE_RANGE = (20, 240)
+
+    def show_progress_animation(self):
+        """Whether progress dialogs show their animation, when one is installed"""
+        return bool(self.get('ui.progress_animation_show', True))
+
+    def get_progress_animation_size(self):
+        """Height of the progress animation, as a percentage of its default
+        height, kept within PROGRESS_ANIMATION_SIZE_RANGE; 100 when unreadable"""
+        try:
+            value = int(self.get('ui.progress_animation_size', 100))
+        except (TypeError, ValueError):
+            return 100
+        low, high = self.PROGRESS_ANIMATION_SIZE_RANGE
+        return min(max(value, low), high)
+
     def get_progress_animation_pacing(self):
         """How the progress animation advances: 'file' plays it at the frame
         durations stored in the file, 'progress' one frame per progress update

@@ -21,12 +21,15 @@ fichiers exportés.
 La première étape consiste le plus souvent à indiquer à VOLUTE où se trouve l'objet, en
 traçant une zone rectangulaire appelée **boîte** autour de lui.
 
-1. En haut de l'onglet **Objets**, sélectionnez **Définir une boîte**.
+1. En haut de l'onglet **Objets**, **Définir une boîte** est déjà sélectionné : c'est le
+   mode dans lequel commence chaque objet.
 2. Faites glisser la souris sur l'image, depuis l'avant des lèvres, juste sous le palais
    dur[^palais-dur], jusqu'à la paroi arrière du pharynx, au-dessus du larynx[^larynx]. La
    boîte apparaît en pointillés, dans la couleur de l'objet.
 
 <img src="images/fr/object-box.webp" alt="Une boîte en pointillés allant des lèvres à la paroi arrière du pharynx, sous le palais dur" width="450">
+
+Une fois la boîte tracée, VOLUTE passe de lui-même en mode **Ajouter des points**.
 
 Le bord haut de la boîte, sous le palais, laisse de côté autant que possible la cavité
 nasale, car dans le cadre de ce tutoriel on considère le conduit vocal à segmenter comme
@@ -65,8 +68,8 @@ partie de l'objet :
 - un **clic droit**, ou Ctrl + clic, pose un **point négatif**, par défaut en rouge :
   *ceci n'en fait pas partie*.
 
-Revenez à l'onglet **Objets** et sélectionnez **Ajouter des points** : en mode
-**Définir une boîte**, un glisser remplacerait la boîte.
+Revenez à l'onglet **Objets** : **Ajouter des points** y est sélectionné depuis que la
+boîte a été tracée.
 
 Chaque correction suit le même enchaînement : cliquer sur l'image dans l'onglet
 **Objets**, puis prédire de nouveau depuis l'onglet **Prédiction**. VOLUTE recalcule
@@ -108,8 +111,9 @@ les repérer et les corriger.
 
 ## Modifier la boîte
 
-- Un nouveau glisser en mode **Définir une boîte** remplace la boîte ; **Supprimer la
-  boîte**, en haut de l'onglet **Objets**, l'efface.
+- Pour remplacer la boîte, sélectionnez de nouveau **Définir une boîte** et tracez-en une
+  autre ; le mode repasse ensuite à **Ajouter des points**. **Supprimer la boîte**, en
+  haut de l'onglet **Objets**, l'efface.
 - Pour que la boîte devienne une limite stricte, cochez **Masques strictement confinés à
   la boîte** dans l'onglet **Prédiction** : ce que les prédictions suivantes trouvent hors
   de la boîte est alors effacé. Ce mode n'est pas activé par défaut car il peut aboutir à

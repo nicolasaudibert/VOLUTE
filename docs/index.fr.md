@@ -25,8 +25,9 @@ connaissance préalable de la ligne de commande :
 
 - [Installer VOLUTE sous Windows](install-windows.fr.md)
 - [Installer VOLUTE sous macOS](install-macos.fr.md)
+- [Installer VOLUTE sous Linux (Ubuntu)](install-linux.fr.md)
 
-Sous Linux, ou pour installer à la main, voir
+Sous une autre distribution Linux, ou pour installer à la main, voir
 [INSTALL.md](https://github.com/nicolasaudibert/VOLUTE/blob/main/INSTALL.md) (en anglais).
 
 ## Utiliser VOLUTE

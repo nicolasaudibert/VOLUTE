@@ -60,7 +60,7 @@ sur l'ordinateur, par exemple :
 ```
 [1/8] Checking the computer
     Windows 10, AMD64
-    NVIDIA GPU, driver supporting CUDA 12.8: PyTorch for CUDA 12.8
+    NVIDIA GPU of compute capability 8.6, driver supporting CUDA 12.8: PyTorch for CUDA 12.8
     Installation folder: C:\Users\monNomUtilisateur\VOLUTE
 ```
 

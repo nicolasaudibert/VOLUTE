@@ -23,7 +23,8 @@ La langue, compacte et nettement séparée de l'air qui la borde en haut et en a
 remplit presque toute la boîte tracée autour d'elle : la boîte suffit à la désigner, sans
 aucun point.
 
-1. En haut de l'onglet **Objets**, sélectionnez **Définir une boîte**.
+1. En haut de l'onglet **Objets**, **Définir une boîte** est sélectionné depuis la
+   création de l'objet.
 2. Faites glisser la souris sur l'image, depuis au-dessus et à gauche de la langue jusqu'en
    dessous et à droite. La boîte apparaît en pointillés, dans la couleur de l'objet.
 
@@ -34,8 +35,8 @@ aucun point.
 
 <img src="images/fr/objects-tongue.webp" alt="La langue en orange dans sa boîte, à côté du conduit vocal en bleu" width="450">
 
-Comme à l'étape 3, sélectionnez de nouveau **Ajouter des points** avant de cliquer sur
-l'image : en mode **Définir une boîte**, un glisser remplace la boîte.
+Comme à l'étape 3, VOLUTE est passé en mode **Ajouter des points** une fois la boîte
+tracée : la langue n'en nécessite pas ici, mais des clics sur l'image lui en ajouteraient.
 
 ## La liste des objets
 

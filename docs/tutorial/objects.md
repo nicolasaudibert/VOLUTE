@@ -22,7 +22,8 @@ The tongue, compact and clearly set apart from the air that borders it above and
 almost fills the box drawn around it: the box is enough to point it out, without any
 point.
 
-1. At the top of the **Objects** tab, select **Define box**.
+1. At the top of the **Objects** tab, **Define box** has been selected since the object
+   was created.
 2. Drag across the image, from above and left of the tongue to below and right of it.
    The box appears as a dashed rectangle, in the object's colour.
 
@@ -33,8 +34,8 @@ point.
 
 <img src="images/en/objects-tongue.webp" alt="The tongue in orange inside its box, next to the vocal tract in blue" width="450">
 
-As in step 3, select **Add points** again before clicking on the image: in **Define
-box** mode, a drag replaces the box.
+As in step 3, VOLUTE switched to **Add points** mode once the box was drawn: the tongue
+needs none here, but clicks on the image would add some to it.
 
 ## The object list
 

@@ -338,7 +338,14 @@ class AnimatedProgressDialog(QProgressDialog):
         hint = super().sizeHint()
         if self.progress_animation is None:
             return hint
-        return hint + QSize(0, self._animation_row_height())
+        # Wide enough for the animation too, which a large size setting can
+        # make wider than the label and the bar
+        style = self.style()
+        width = max(hint.width(),
+                    self.progress_animation.width()
+                    + style.pixelMetric(QStyle.PM_LayoutLeftMargin, None, self)
+                    + style.pixelMetric(QStyle.PM_LayoutRightMargin, None, self))
+        return QSize(width, hint.height() + self._animation_row_height())
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

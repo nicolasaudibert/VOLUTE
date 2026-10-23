@@ -4,8 +4,9 @@
 
 Ce tutoriel parcourt VOLUTE pas à pas, sur un exemple réel : une courte vidéo d'IRM
 dynamique (aussi appelée IRM en temps réel) d'une personne qui parle. Il suppose seulement
-que VOLUTE est installé — voir les guides pour [Windows](../install-windows.fr.md) et
-[macOS](../install-macos.fr.md) — et aucune connaissance en programmation.
+que VOLUTE est installé — voir les guides pour [Windows](../install-windows.fr.md),
+[macOS](../install-macos.fr.md) et [Linux](../install-linux.fr.md) — et aucune
+connaissance en programmation.
 
 ![Quatre trames de la vidéo d'exemple, avec le conduit vocal en bleu et la langue en orange sur chacune](images/fr/tracking-propagated.webp)
 

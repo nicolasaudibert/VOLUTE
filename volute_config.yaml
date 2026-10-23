@@ -25,6 +25,9 @@ models:
 ui:
   default_language: "en"              # Language code: "en", "fr", etc.
   progress_details_font_size: 12      # Font size for progress dialog details
+  progress_animation_show: true       # Show the progress animation, when one is installed
+  progress_animation_size: 100        # Its height, in % of the default (20 to 240);
+                                      # the width keeps the file's proportions
   progress_animation_pacing: "file"   # Progress animation, when one is installed:
                                       # "file": plays at the frame durations of the file
                                       # "progress": one frame per progress update of

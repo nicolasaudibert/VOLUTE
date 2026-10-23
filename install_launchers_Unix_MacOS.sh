@@ -1,8 +1,30 @@
 #!/bin/bash
 # Installation script for VOLUTE launchers (macOS/Linux)
 # Generates Unix launcher scripts for different model configurations
+#
+#   bash tools/install_launchers_Unix_MacOS.sh [--python PATH]
+#
+# --python names the Python interpreter the launchers run, by its full path,
+# so that they work without activating its environment; without it they run
+# whichever python is on PATH.
 
 set -e
+
+PYTHON="python"
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --python)
+            if [[ -z "$2" ]]; then
+                echo "Error: --python needs a path"
+                exit 1
+            fi
+            PYTHON="$2"
+            shift 2 ;;
+        *)
+            echo "Error: unknown option: $1"
+            exit 1 ;;
+    esac
+done
 
 echo "======================================================================"
 echo "VOLUTE Launchers Installation (macOS/Linux)"
@@ -16,6 +38,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 fi
 
 echo "Detected OS: $OS"
+echo "Python: $PYTHON"
 echo ""
 
 # Check we're in SAM2 directory
@@ -41,11 +64,12 @@ create_unix_launcher() {
 #!/bin/bash
 # DESCRIPTION_PLACEHOLDER
 cd "$(dirname "$0")/../.."
-python tools/VOLUTE.py ARGS_PLACEHOLDER "$@"
+"PYTHON_PLACEHOLDER" tools/VOLUTE.py ARGS_PLACEHOLDER "$@"
 EOF
 
     sed -i.bak "s|DESCRIPTION_PLACEHOLDER|${description}|g" "$file"
     sed -i.bak "s|ARGS_PLACEHOLDER|${args}|g" "$file"
+    sed -i.bak "s|PYTHON_PLACEHOLDER|${PYTHON}|g" "$file"
     rm "${file}.bak" 2>/dev/null || true
 
     chmod +x "$file"
@@ -128,8 +152,10 @@ chmod +x *.sh
 ```
 
 **Python environment:**
-Make sure the correct conda environment is activated before running a launcher.
-SAM2++ requires its own environment (`sam2_plus`); see `INSTALL.md` for details.
+Launchers created with `--python` (as the one-command installer does) run that
+interpreter and need no activation. Otherwise, make sure the correct conda
+environment is activated before running a launcher. SAM2++ requires its own
+environment (`sam2_plus`); see `INSTALL.md` for details.
 EOF
 
 echo "  ✓ Created: README.md"

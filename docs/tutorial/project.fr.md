@@ -79,8 +79,10 @@ trames.
   préparée dans un tableur, avec les colonnes `sam2_file`, `image_folder` et `ref_frame`.
 - **Options de traitement** choisit ce qui est calculé et exporté : propagation, images
   avec masques, centres de gravité et coordonnées des masques par défaut, enveloppes et
-  contours sur demande. **Exporter les points suivis** concerne VOLUTE lancé avec SAM2++
-  en mode suivi de points (étape 10), et reste grisé sinon.
+  contours sur demande. Avec SAM2++ en mode suivi de points (étape 10), les images
+  portent les points suivis, **Exporter les points suivis** est coché par défaut et les
+  exportations propres aux masques sont grisées ; dans l'autre mode, c'est **Exporter les
+  points suivis** qui reste grisé.
 - L'onglet **Points de référence** ajoute les distances de l'étape 8, et l'onglet
   **Points Importés** l'analyse de l'étape 10.
 - **Dossier de sortie** reçoit un dossier par dossier de trames.

@@ -4,6 +4,84 @@ Notable changes to VOLUTE. Versions are those reported by **Help › About** and
 by the macOS application bundle; `volute/__init__.py` holds the number everything
 else reads.
 
+## 0.9.4 — 2026-10-23
+
+### Added
+
+- One-command installation on Linux, Ubuntu 22.04 and 24.04 first: a line
+  pasted into a terminal installs VOLUTE into a folder of its own (`~/VOLUTE`),
+  without administrator rights, as on macOS, with `curl` or, where it is
+  missing, `wget`. VOLUTE then appears in the applications menu, from which it
+  can be pinned to the dock; the uninstall removes the folder and that entry,
+  `~/.local/share/applications/volute.desktop`. PyQt5 comes from conda-forge,
+  whose Qt brings the X11 libraries the PyPI wheel needs from the system, so
+  that nothing has to be installed with `sudo`; before creating the launchers,
+  the installer opens a window for an instant, so that a library still
+  missing shows there rather than when VOLUTE first starts. Its first line names
+  the distribution. `install_launchers_Unix_MacOS.sh` takes `--python`, which
+  makes the launchers run that interpreter without activating its environment.
+- The progress animation keeps the proportions of its file, which a
+  rectangular animation needs: it was drawn in a 96-pixel square. Its height,
+  120 pixels by default, can be set from 20 % to 240 % of that, and the
+  animation turned off, in **Settings › Interface**
+  (`ui.progress_animation_size` and `ui.progress_animation_show`); the progress
+  dialogs widen to fit it.
+
+### Changed
+
+- A new application icon, more contrasted, which carries the name VOLUTE
+  itself: in the window, the Dock or the taskbar, the macOS application and
+  the Windows shortcut, and in **Help › About**. The progress animation is
+  drawn after it.
+- GIMP is found on Linux when installed as a Flatpak from Flathub, run
+  through `flatpak run`, or as a Snap, whose private `/tmp` the files
+  exchanged with it now avoid. A GIMP older than 3.0, such as the apt package
+  of Ubuntu 22.04 and 24.04, is passed over: VOLUTE's scripts need GIMP 3.
+- An object starts from its box: **Define box** is selected at the top of the
+  **Objects** tab when an object is created with **Add object**, at startup and
+  when an image folder is loaded, for Object 1. Once a box is drawn, the mode
+  switches to **Add points** by itself; drawing the box again takes
+  **Define box** once more. Undoing an object's creation brings back the mode
+  selected before it. Selecting an existing object, importing a project, object
+  names or GIMP masks leave the mode as it is. SAM2++ point tracking, which has
+  no such buttons, is unchanged. The tooltip of **Define box** says so.
+
+### Fixed
+
+- The installer reads the compute capability of an NVIDIA GPU and, for one
+  older than Turing (below 7.5: Maxwell, Pascal, Volta, such as a Quadro P4000
+  or a GeForce GTX 10), installs the CUDA 12.6 build of PyTorch, which still
+  supports it, rather than the CUDA 12.8 build, which does not: SAM2 could not
+  start there ("no kernel image is available for execution on the device").
+  A GPU older than Maxwell gets the CPU build. Windows and Linux alike.
+- On those GPUs, which have no bfloat16 arithmetic, SAM2 computes in float32
+  instead of mixed bfloat16 precision.
+- When a model cannot be loaded, the error message names the cause, such as a
+  missing checkpoint or a CUDA error, which is also written to the terminal; it
+  said only "Failed to initialize SAM2 backend".
+- **Batch Processing** exports images with the tracked points in SAM2++
+  point tracking mode, as **File › Export** does, into
+  `images_with_tracked_points`; its box reads **Export images with tracked
+  points**. It read **Export masked images** and exported nothing, point
+  tracking computing no mask. The background opacity, which only masked images
+  have, is unavailable in that mode.
+- **Batch Processing** greys out, unchecked, **Export centroids**, **Export
+  mask coordinates**, **Export hull coordinates** and **Export contour
+  coordinates** in SAM2++ point tracking mode, where they had no mask to
+  export; a tooltip says which mode they require.
+- **Export tracked points**, the one export of the trajectories, is checked
+  by default in **Batch Processing** in SAM2++ point tracking mode.
+- The log line of each **Batch Processing** item counts the tracked
+  positions in SAM2++ point tracking mode, `total_tracked_points`, instead of
+  `total_masks`, always 0 there.
+
+### Documentation
+
+- The README's logo is the new icon above the spelled-out acronym, set in
+  Akshar; the documentation site's header shows the icon beside the acronym,
+  in a header made taller for it on wide screens, and its favicon is the new
+  icon. The repository's social preview banner shows the new icon too.
+
 ## 0.9.3 — 2026-10-14
 
 ### Added

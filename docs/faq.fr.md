@@ -17,9 +17,10 @@ français.
 
 ### Faut-il connaître Python, ou l'installer d'abord ?
 
-Non. Sous Windows et macOS, une seule commande installe tout ce dont VOLUTE a besoin,
-Python compris ; les guides [Windows](install-windows.fr.md) et [macOS](install-macos.fr.md)
-la détaillent sans supposer aucune connaissance de la ligne de commande.
+Non. Sous Windows, macOS et Linux (Ubuntu), une seule commande installe tout ce dont
+VOLUTE a besoin, Python compris ; les guides [Windows](install-windows.fr.md),
+[macOS](install-macos.fr.md) et [Linux](install-linux.fr.md) la détaillent sans supposer
+aucune connaissance de la ligne de commande.
 
 ### L'installation modifie-t-elle mon Python, Anaconda ou Miniconda existant ?
 
@@ -29,9 +30,11 @@ n'est modifié en dehors de ce dossier, hormis le raccourci de VOLUTE. Désinsta
 
 ### Peut-on installer VOLUTE sous Linux ?
 
-Oui, à la main : la documentation de référence, sur GitHub, décrit chaque étape dans
+Oui. Sous Ubuntu 22.04 et 24.04, une seule commande l'installe, comme sous Windows et
+macOS : voir le guide [Linux](install-linux.fr.md). Cette commande pourrait convenir à
+d'autres distributions mais n'a pas été testée ; à défaut, la documentation de référence,
+sur GitHub, décrit l'installation à la main dans
 [INSTALL.md](https://github.com/nicolasaudibert/VOLUTE/blob/main/INSTALL.md).
-L'installation en une seule commande ne couvre pour l'instant que Windows et macOS.
 
 ### VOLUTE a-t-il besoin d'une connexion à Internet ?
 
@@ -169,7 +172,9 @@ plutôt que de compter sur un nouveau calcul, et notez le modèle utilisé.
 Oui : **Fichier › Exporter la trame pour édition…** exporte une trame et ses masques pour
 GIMP ou un autre éditeur d'images, et **Fichier › Importer des masques…** récupère les
 masques retouchés. GIMP ne s'installe pas avec VOLUTE : téléchargez-le sur
-[gimp.org](https://www.gimp.org) (version 3.0 ou ultérieure). Dans le tutoriel :
+[gimp.org](https://www.gimp.org) (version 3.0 ou ultérieure) ; sous Ubuntu 22.04 et
+24.04, installez-le en Snap ou en Flatpak, car la version d'`apt` est la 2.10, qui n'est
+pas compatible avec VOLUTE. Dans le tutoriel :
 [Retoucher un masque à la main dans GIMP](tutorial/corrections.fr.md#retoucher-un-masque-à-la-main-dans-gimp),
 à l'étape 5. Dans la documentation de référence, sur GitHub :
 [GIMP-assisted mask editing](https://github.com/nicolasaudibert/VOLUTE/blob/main/DOCUMENTATION.md#gimp-assisted-mask-editing-mask-mode-only).

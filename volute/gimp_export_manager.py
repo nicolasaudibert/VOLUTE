@@ -66,10 +66,25 @@ class GimpExportManager:
         '/Applications/GIMP.app/Contents/MacOS/gimp',
     )
 
+    # GIMP installed as a Snap, on Linux: /snap/bin is on PATH in a desktop
+    # session, but not always for an application started from a menu entry.
+    # The Snap brings no gimp-console, and its /tmp is private to it.
+    SNAP_GIMP = '/snap/bin/gimp'
+
+    # GIMP installed as a Flatpak from Flathub, on Linux: nothing on PATH, run
+    # through 'flatpak run'. Its sandbox sees the whole file system, /tmp
+    # included.
+    FLATPAK_ID = 'org.gimp.GIMP'
+
+    # The batch scripts use the Python-Fu of GIMP 3; Ubuntu 22.04 and 24.04
+    # put GIMP 2.10 on PATH
+    MIN_GIMP_MAJOR = 3
+
     def __init__(self, main_window, debug_mode=False):
         self.main_window = main_window
         self.debug_mode = debug_mode
-        self._gimp_executable = None
+        self._gimp_command = None
+        self._gimp_is_snap = False
         self._detected = False
         # Set from the UI thread, polled from the worker thread running the
         # export/import — mirrors BatchProcessor's cooperative cancel flag.
@@ -95,14 +110,15 @@ class GimpExportManager:
     # GIMP CLI detection
     # ------------------------------------------------------------------
 
-    def detect_gimp_executable(self, force=False):
+    def detect_gimp_command(self, force=False):
         """
-        Resolve a usable GIMP executable path: an explicit override from
-        configuration takes precedence and is NOT silently ignored if
-        invalid (an invalid override is reported as "not detected" rather
-        than falling back to a search); otherwise 'gimp-console' then
-        'gimp' are looked up on PATH, and failing that in
-        BUNDLED_CANDIDATES.
+        Resolve the command that runs GIMP, as a list the batch arguments
+        are appended to, or None. An explicit override from configuration
+        takes precedence and is NOT silently ignored if invalid (an invalid
+        override is reported as "not detected" rather than falling back to
+        a search); otherwise 'gimp-console' then 'gimp' are looked up on
+        PATH, then in BUNDLED_CANDIDATES and at SNAP_GIMP, keeping the first
+        whose version is GIMP 3 or later; failing that, GIMP's Flatpak.
 
         'gimp-console' is preferred at every step: it carries no GUI, so
         it opens no window, flashes no Dock icon, and cannot fail for want
@@ -110,34 +126,87 @@ class GimpExportManager:
         -i, since it still brings up GTK.
         """
         if self._detected and not force:
-            return self._gimp_executable
+            return self._gimp_command
 
+        self._gimp_is_snap = False
         override = self.main_window.config_manager.get_gimp_path()
         if override:
-            self._gimp_executable = override if self._is_executable(override) else None
+            usable = self._is_executable(override)
+            self._gimp_command = [override] if usable else None
+            self._gimp_is_snap = usable and self._is_snap(override)
             self._detected = True
-            return self._gimp_executable
+            return self._gimp_command
 
-        found = next(
-            (p for p in (shutil.which('gimp-console'), shutil.which('gimp')) if p),
-            None,
-        )
-        if found is None:
-            found = next(
-                (p for p in self.BUNDLED_CANDIDATES if self._is_executable(p)),
-                None,
-            )
+        candidates = [p for p in (shutil.which('gimp-console'), shutil.which('gimp')) if p]
+        candidates += [p for p in self.BUNDLED_CANDIDATES + (self.SNAP_GIMP,)
+                       if p not in candidates and self._is_executable(p)]
+        command = next(([p] for p in candidates if self._is_recent_enough([p])), None)
+        if command is None:
+            command = self._flatpak_command()
 
-        self._gimp_executable = found
+        self._gimp_command = command
+        self._gimp_is_snap = command is not None and self._is_snap(command[0])
         self._detected = True
-        return found
+        return command
 
     @staticmethod
     def _is_executable(path):
         return os.path.isfile(path) and os.access(path, os.X_OK)
 
+    @staticmethod
+    def _is_snap(path):
+        """True for a Snap's command, a link in /snap/bin to /usr/bin/snap."""
+        return (path.startswith('/snap/')
+                or os.path.basename(os.path.realpath(path)) == 'snap')
+
+    def _gimp_major_version(self, command):
+        """Major version GIMP reports, or None when it cannot be read."""
+        try:
+            result = subprocess.run(command + ['--version'], capture_output=True,
+                                    text=True, timeout=60, stdin=subprocess.DEVNULL)
+        except (OSError, subprocess.SubprocessError):
+            return None
+        match = re.search(r'version\s+(\d+)\.', result.stdout + result.stderr)
+        return int(match.group(1)) if match else None
+
+    def _is_recent_enough(self, command):
+        """False only for a GIMP known to be older than MIN_GIMP_MAJOR: one
+        whose version cannot be read is given the benefit of the doubt."""
+        major = self._gimp_major_version(command)
+        if self.debug_mode:
+            print(f"GIMP candidate {command}: major version {major}")
+        return major is None or major >= self.MIN_GIMP_MAJOR
+
+    def _flatpak_command(self):
+        """'flatpak run' command for GIMP's console binary when GIMP is
+        installed as a Flatpak, for the user or system-wide; else None."""
+        flatpak = shutil.which('flatpak')
+        if not flatpak:
+            return None
+        try:
+            installed = subprocess.run(
+                [flatpak, 'info', self.FLATPAK_ID], capture_output=True,
+                timeout=60, stdin=subprocess.DEVNULL).returncode == 0
+        except (OSError, subprocess.SubprocessError):
+            return None
+        if not installed:
+            return None
+        command = [flatpak, 'run', '--command=gimp-console', self.FLATPAK_ID]
+        return command if self._is_recent_enough(command) else None
+
+    def _make_temp_dir(self, prefix):
+        """Scratch folder for the files GIMP reads and writes. A Snap's GIMP
+        has a private /tmp, so its folder goes into ~/snap/gimp/common, the
+        Snap's own folder, which VOLUTE can write to as well."""
+        self.detect_gimp_command()
+        root = None
+        if self._gimp_is_snap:
+            root = os.path.join(os.path.expanduser('~'), 'snap', 'gimp', 'common')
+            os.makedirs(root, exist_ok=True)
+        return tempfile.mkdtemp(prefix=prefix, dir=root)
+
     def is_available(self):
-        return self.detect_gimp_executable() is not None
+        return self.detect_gimp_command() is not None
 
     # ------------------------------------------------------------------
     # Mask layer preparation
@@ -306,12 +375,12 @@ class GimpExportManager:
         process mid-script. Returns
         (status, combined_stdout_stderr, completed_items).
         """
-        gimp_exe = self.detect_gimp_executable()
-        if not gimp_exe:
+        gimp_command = self.detect_gimp_command()
+        if not gimp_command:
             return STATUS_ERROR, "GIMP executable not found.", 0
 
-        cmd = [gimp_exe, '-i', '--batch-interpreter=python-fu-eval',
-               '-b', script, '--quit']
+        cmd = gimp_command + ['-i', '--batch-interpreter=python-fu-eval',
+                              '-b', script, '--quit']
         try:
             proc = subprocess.Popen(
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -396,7 +465,7 @@ class GimpExportManager:
 
         objects = self._gather_objects(object_ids)
 
-        temp_dir = tempfile.mkdtemp(prefix="sam2_gimp_export_")
+        temp_dir = self._make_temp_dir("sam2_gimp_export_")
         mask_entries = []
         for obj_id, name, mask, color in objects:
             img = self._build_mask_image(mask, color, width, height)
@@ -487,7 +556,7 @@ class GimpExportManager:
         total = len(frame_indices)
 
         os.makedirs(output_folder, exist_ok=True)
-        temp_dir = tempfile.mkdtemp(prefix="sam2_gimp_export_")
+        temp_dir = self._make_temp_dir("sam2_gimp_export_")
         progress_path = os.path.join(temp_dir, self.PROGRESS_FILENAME)
         frames = []
         try:
@@ -657,7 +726,7 @@ class GimpExportManager:
         returns no entries and leaves the session untouched.
         """
         self.reset_cancel()
-        temp_dir = tempfile.mkdtemp(prefix="sam2_gimp_xcf_import_")
+        temp_dir = self._make_temp_dir("sam2_gimp_xcf_import_")
         progress_path = os.path.join(temp_dir, self.PROGRESS_FILENAME)
         script = self._build_xcf_extraction_script(xcf_paths, temp_dir,
                                                    progress_path=progress_path)

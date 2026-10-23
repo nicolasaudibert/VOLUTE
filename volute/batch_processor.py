@@ -520,6 +520,29 @@ class BatchProcessor:
 
         return exported
 
+    def export_tracked_point_images(self, object_manager, image_paths,
+                                    image_folder, output_folder):
+        """Export images with the tracked point markers, as the Export menu
+        does in point tracking mode, into output_folder/images_with_tracked_points."""
+        from .exporters import ImageExporter
+        proxy = MainWindowProxy(
+            sam2_backend=self.sam2_backend,
+            object_manager=object_manager,
+            image_manager_proxy=_ImageManagerProxy(image_paths, image_folder),
+            localization=self.localization,
+            debug_mode=self.debug_mode
+        )
+        exporter = ImageExporter(proxy, debug_mode=self.debug_mode)
+        return exporter.export_images_with_tracked_points(
+            image_paths,
+            object_manager.object_tracked_points,
+            object_manager.object_colors,
+            object_manager.object_names,
+            object_manager.tracked_point_style,
+            object_manager.tracked_point_size,
+            output_folder,
+        )
+
     def export_centroids(self, object_manager, image_paths, output_path):
         """Export centroids via CentroidExporter, with JSON fallback"""
         try:
@@ -974,9 +997,14 @@ class BatchProcessor:
                     mask_progress_callback=mask_progress_callback
                 )
                 result['errors'].extend(prop_errors)
-                result['stats']['total_masks'] = sum(
-                    len(masks) for masks in om.object_masks.values()
-                )
+                if self._is_point_mode():
+                    result['stats']['total_tracked_points'] = sum(
+                        len(frames) for frames in om.object_tracked_points.values()
+                    )
+                else:
+                    result['stats']['total_masks'] = sum(
+                        len(masks) for masks in om.object_masks.values()
+                    )
 
             if self._cancelled:
                 return result
@@ -990,13 +1018,19 @@ class BatchProcessor:
                     result['errors'].append(self._t("batch_error_state_propagate", e))
 
             if options.get('export_images', True) and not self._cancelled:
-                _log(self._t("batch_log_exporting_images"))
+                point_mode = self._is_point_mode()
+                _log(self._t("batch_log_exporting_tracked_images" if point_mode
+                             else "batch_log_exporting_images"))
                 try:
-                    n = self.export_masked_images(
-                        om, image_paths,
-                        os.path.join(item_out, "masked_images"),
-                        bg_opacity=options.get('bg_opacity', 1.0)
-                    )
+                    if point_mode:
+                        n = self.export_tracked_point_images(
+                            om, image_paths, image_folder, item_out)
+                    else:
+                        n = self.export_masked_images(
+                            om, image_paths,
+                            os.path.join(item_out, "masked_images"),
+                            bg_opacity=options.get('bg_opacity', 1.0)
+                        )
                     result['stats']['exported_images'] = n
                     _log("  " + self._t("batch_log_images_exported", n))
                 except Exception as e:

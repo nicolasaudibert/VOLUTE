@@ -37,18 +37,16 @@ A file Qt cannot decode is ignored as if it were absent.
 
 Authoring notes:
 
-- The animation is drawn in a square of `progress_animation.DISPLAY_SIZE`
-  logical pixels, **96** by default. Change that one constant and every dialog
-  follows. Author the file at **twice** that, 192×192, since a HiDPI display
-  draws two device pixels per logical one and would otherwise upscale and blur
-  it.
+- The animation is drawn `progress_animation.DISPLAY_HEIGHT` logical pixels
+  high, **120** by default, times `ui.progress_animation_size` (20 to 240 %);
+  its width follows the file's proportions. Author it at least twice the height
+  it is shown at (240 pixels for the default size), since a HiDPI display draws
+  two device pixels per logical one and would otherwise upscale and blur it.
 - Every frame is decoded when the dialog opens, which costs about
   `width × height × 4 bytes × frames` of memory — a 192×192 animation of 16
   frames is under 2.5 MB. Keep the frame count modest all the same.
 - The animation loops for as long as the operation runs, so give it a seamless
   cycle and set its loop count to infinite.
-- A square is assumed. A non-square file is squashed into one, so crop it
-  before dropping it here.
 
 Where it appears:
 

@@ -79,7 +79,8 @@ nav:
   - Installation:
       - Windows: install-windows.md
       - macOS: install-macos.md
-      - Linux et installation manuelle: https://github.com/nicolasaudibert/VOLUTE/blob/main/INSTALL.md
+      - Linux (Ubuntu): install-linux.md
+      - Installation manuelle: https://github.com/nicolasaudibert/VOLUTE/blob/main/INSTALL.md
   - Tutoriel:
       - Présentation: tutorial/index.md
       - 1. Avant de commencer: tutorial/start.md

@@ -19,12 +19,15 @@ type `Vocal tract`: the name appears in the list, and later in the exported file
 The first step is most often to tell VOLUTE where the object lies, by drawing a
 rectangular area called a **box** around it.
 
-1. At the top of the **Objects** tab, select **Define box**.
+1. At the top of the **Objects** tab, **Define box** is already selected: every object
+   starts in this mode.
 2. Drag the mouse over the image, from in front of the lips, just below the hard
    palate[^palais-dur], to the back wall of the pharynx, above the larynx[^larynx]. The
    box appears as a dashed outline, in the object's colour.
 
 <img src="images/en/object-box.webp" alt="A dashed box from the lips to the back wall of the pharynx, below the hard palate" width="450">
+
+Once the box is drawn, VOLUTE switches to **Add points** mode by itself.
 
 The upper edge of the box, below the palate, leaves out as much of the nasal cavity as
 possible, since this tutorial takes the vocal tract to be segmented as its oral part
@@ -60,8 +63,8 @@ Clicks on the image tell VOLUTE what should be taken as part of the object or no
 - a **right click**, or Ctrl + click, puts a **negative point**, red by default: *this
   does not*.
 
-Go back to the **Objects** tab and select **Add points**: in **Define box** mode, a drag
-would replace the box.
+Go back to the **Objects** tab: **Add points** has been selected there since the box was
+drawn.
 
 Each correction follows the same routine: click on the image in the **Objects** tab,
 then predict again from the **Prediction** tab. VOLUTE recomputes the mask from the box
@@ -103,8 +106,9 @@ them.
 
 ## Changing the box
 
-- A new drag in **Define box** mode replaces the box; **Remove box**, at the top of the
-  **Objects** tab, deletes it.
+- To replace the box, select **Define box** again and draw another one; the mode then
+  switches back to **Add points**. **Remove box**, at the top of the **Objects** tab,
+  deletes it.
 - To make the box a strict limit, tick **Masks strictly confined to box** in the
   **Prediction** tab: whatever the following predictions find outside the box is then
   cleared. This mode is not on by default, as it can leave masks cut off abruptly at the

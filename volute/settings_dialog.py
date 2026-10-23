@@ -19,7 +19,7 @@ from .dialogs import localized_question
 
 # (dotted key, tab key, label key, kind, options)
 #   bool    — checkbox
-#   int     — spin box, options = (minimum, maximum)
+#   int     — spin box, options = (minimum, maximum) or (minimum, maximum, step)
 #   choice  — combo box over fixed values, options = ((value, label key), …);
 #             the label is shown, the value is what the file stores
 #   language/model — combo box filled at runtime
@@ -32,6 +32,8 @@ SETTINGS_FIELDS = [
     ('ui.native_file_dialogs',         'interface', 'settings_native_dialogs',      'bool',     None),
     ('ui.import_confirmation_default', 'interface', 'settings_import_confirmation', 'choice',   (('yes', 'yes'), ('no', 'no'))),
     ('ui.progress_details_font_size',  'interface', 'settings_progress_font',       'int',      (6, 32)),
+    ('ui.progress_animation_show',     'interface', 'settings_animation_show',      'bool',     None),
+    ('ui.progress_animation_size',     'interface', 'settings_animation_size',      'int',      (20, 240, 5)),
     ('ui.progress_animation_pacing',   'interface', 'settings_animation_pacing',    'choice',   (('file', 'settings_pacing_file'),
                                                                                                  ('progress', 'settings_pacing_progress'))),
 
@@ -126,7 +128,9 @@ class SettingsDialog(QDialog):
             return widget, widget
         if kind == 'int':
             widget = QSpinBox()
-            widget.setRange(*options)
+            widget.setRange(*options[:2])
+            if len(options) > 2:
+                widget.setSingleStep(options[2])
             return widget, widget
         if kind == 'choice':
             widget = QComboBox()

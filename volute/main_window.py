@@ -58,7 +58,12 @@ class SAM2VideoSegmentationApp(QMainWindow):
     TAB_OBJECTS_POINTS = 0
     TAB_REF_POINTS     = 1
     TAB_PREDICTION     = 2
-    
+
+    # Ids of the Objects tab radio buttons, fixed by create_points_panel()
+    MODE_ADD_POINTS    = 1
+    MODE_REMOVE_POINTS = 2
+    MODE_DEFINE_BOX    = 3
+
     def __init__(self, debug_mode=False, config_path=None, checkpoint_path=None, sam2plus_task='mask',
                  model_type=None):
         super().__init__()
@@ -191,7 +196,9 @@ class SAM2VideoSegmentationApp(QMainWindow):
                 final_checkpoint_path, final_config_path, final_model_type)
             
             if not success:
-                raise Exception("Failed to initialize SAM2 backend")
+                cause = self.sam2_backend.init_error
+                raise Exception("Failed to initialize SAM2 backend"
+                                + (f":\n{cause}" if cause else ""))
 
             self.object_manager.set_point_mode(self.is_point_mode())
 
@@ -380,7 +387,9 @@ class SAM2VideoSegmentationApp(QMainWindow):
                 success = self.image_manager.load_images_from_folder(folder)
                 if not success:
                     return False
-    
+                # Object 1, recreated empty, starts from its box
+                self.set_prompt_mode(self.MODE_DEFINE_BOX)
+
                 # Heavy path in background: image prep + SAM2 init_state
                 n_images = len(self.image_manager.image_paths)
                 n_label  = os.path.basename(folder.rstrip(os.sep))
@@ -602,6 +611,8 @@ class SAM2VideoSegmentationApp(QMainWindow):
 
         om.current_object_id = new_id
         om.selected_object_ids = {new_id}
+        # A new object starts from its box
+        prev_mode = self.set_prompt_mode(self.MODE_DEFINE_BOX)
         self.ui_manager.update_objects_list()
         self.ui_manager.update_object_ui()
         # The list rebuild runs with its signals blocked, so the selection change
@@ -613,6 +624,8 @@ class SAM2VideoSegmentationApp(QMainWindow):
             om.remove_object(new_id)
             om.current_object_id = prev_current
             om.selected_object_ids = set(prev_selected)
+            if prev_mode is not None:
+                self.set_prompt_mode(prev_mode)
             self.ui_manager.update_objects_list()
             self.ui_manager.update_object_ui()
             self.update_display(maintain_global_zoom=True)
@@ -621,6 +634,7 @@ class SAM2VideoSegmentationApp(QMainWindow):
             om.restore_object(new_id, snapshot)
             om.current_object_id = new_id
             om.selected_object_ids = {new_id}
+            self.set_prompt_mode(self.MODE_DEFINE_BOX)
             self.ui_manager.update_objects_list()
             self.ui_manager.update_object_ui()
             self.update_display(maintain_global_zoom=True)
@@ -629,7 +643,20 @@ class SAM2VideoSegmentationApp(QMainWindow):
 
         if self.debug_mode:
             print(f"Added new object with ID {new_id}")
-    
+
+    def set_prompt_mode(self, mode_id):
+        """Check the Objects tab radio button with this id (MODE_* constants)
+        and return the id checked before. Returns None in SAM2++ point
+        tracking mode, which has no such buttons."""
+        group = self.ui_manager.get_control('point_mode_group')
+        if group is None:
+            return None
+        previous = group.checkedId()
+        button = group.button(mode_id)
+        if button is not None:
+            button.setChecked(True)
+        return previous
+
     def remove_current_object(self):
         """Remove all currently selected objects/points, with undo support"""
         from .history_manager import Command

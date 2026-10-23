@@ -32,6 +32,7 @@ The application works on a folder of numbered images. **File › Extract Frames 
   - Right click or Ctrl+click → negative point (red)
 - **Remove points mode** — click and drag to draw a rectangle; all enclosed points are removed
 - **Define box mode** — click and drag to define a bounding box (see Box-Based Prompting below)
+- **Starting mode**: **Define box** is selected at startup, when an image folder is loaded and when an object is created with **Add object** (undoing the creation restores the previous mode); once a box is drawn, the mode switches to **Add points**. Selecting an existing object or importing a project leaves the mode as it is
 - Tooltips on each mode button explain the interaction model
 - Clear all points button for the current object and frame
 - Adding points is only available with a single object/point selected; attempting it with a multi-selection active shows a warning dialog
@@ -39,7 +40,7 @@ The application works on a folder of numbered images. **File › Extract Frames 
 ### Box-Based Prompting (mask mode only)
 A third way to define a mask, combinable with the points above: an optional bounding box per (object, frame), passed to SAM2 in the same call as that frame's points.
 
-- **Define box** mode (Points Configuration panel): click and drag to draw the box; a drag shorter than 3 pixels in either dimension is treated as an accidental click and ignored. Drawing a new box replaces the object's existing one on that frame. **Remove box** deletes it, and is enabled only when the current object has a box on the current frame
+- **Define box** mode (Points Configuration panel): click and drag to draw the box; a drag shorter than 3 pixels in either dimension is treated as an accidental click and ignored. Drawing a new box replaces the object's existing one on that frame; since drawing a box switches to **Add points** mode, select **Define box** again to redraw it. **Remove box** deletes it, and is enabled only when the current object has a box on the current frame
 - One box per object and frame. Prompt order is irrelevant — points may be placed before or after the box
 - No box means prediction runs on the whole frame, exactly as before
 - The box is displayed as a dashed rectangle in the object's mask color, for every selected object
@@ -93,7 +94,7 @@ For objects hard to segment from points alone, a pre-composed external binary ma
 Exports the current frame's background image plus one mask image per object as a starting point for external editing in GIMP (or any image editor via the plain-files mode), for later re-import via **Import Masks…** above — either directly as `.xcf`, or via the per-object subfolders produced by the plain-files mode.
 
 - **File › Export Frame for Editing…** opens a dialog offering two modes:
-  - **Single .xcf file** — background and one layer per object (named `mask::<id>::<name>::<filename>`) assembled into a multi-layer `.xcf` by invoking GIMP itself in non-interactive batch mode (Python-Fu). The output file is named after the source frame's basename, consistently with the multi-frame export. Available only when a GIMP command-line executable is detected (`gimp-console`/`gimp` on `PATH`, or an explicit override — see Configuration)
+  - **Single .xcf file** — background and one layer per object (named `mask::<id>::<name>::<filename>`) assembled into a multi-layer `.xcf` by invoking GIMP itself in non-interactive batch mode (Python-Fu). The output file is named after the source frame's basename, consistently with the multi-frame export. Available only when a GIMP 3 command-line executable is detected (`gimp-console`/`gimp` on `PATH`, GIMP's Flatpak or Snap, or an explicit override — see Configuration)
   - **Separate image files** — background copied as-is, plus one mask image per object written into a per-object subfolder (`obj<id>_<name>/`), each keeping the exact source frame filename so it's directly reusable as Format A **Import Mask…** input, no GIMP round-trip needed
 - **File › Export All Frames for Editing…** — same two modes, applied to every frame that has at least one object mask defined, after a confirmation dialog stating how many frames will be exported. `.xcf` mode assembles every frame's file in a single batched GIMP invocation (one GIMP startup for the whole export, not one per frame); plain-files mode writes one subfolder per frame, each holding the background and per-object mask subfolders as above
 - Each mask image: filled with the object's configured mask color at full opacity where a prediction already exists on this frame, fully transparent elsewhere (ready to hand-paint)
@@ -311,15 +312,15 @@ Processing options:
 | Option | Default |
 |---|---|
 | Propagate masks (**Propagate points** in SAM2++ point tracking mode) | ✓ |
-| Export masked images | ✓ |
-| Export centroids | ✓ |
-| Export mask coordinates | ✓ |
-| Export hull coordinates | ✗ |
-| Export contour coordinates | ✗ |
-| Export tracked points | ✗ — enabled only in SAM2++ point tracking mode |
+| Export masked images (**Export images with tracked points** in SAM2++ point tracking mode) | ✓ |
+| Export centroids | ✓ — unavailable in SAM2++ point tracking mode |
+| Export mask coordinates | ✓ — unavailable in SAM2++ point tracking mode |
+| Export hull coordinates | ✗ — unavailable in SAM2++ point tracking mode |
+| Export contour coordinates | ✗ — unavailable in SAM2++ point tracking mode |
+| Export tracked points | ✗ (✓ in SAM2++ point tracking mode) — enabled only in that mode |
 | Export inference state after prediction | ✗ |
 | Export inference state after propagation | ✗ |
-| Background opacity slider | 100 % — enabled only when Export masked images is ticked |
+| Background opacity slider | 100 % — enabled only when Export masked images is ticked, in mask mode |
 | Hull smoothing (0–100) | 0 — enabled only when Export hull coordinates is ticked |
 | Contour smoothing (0–100) | 0 — enabled only when Export contour coordinates is ticked |
 
@@ -348,6 +349,8 @@ Import and validation of tracked points happens automatically per item (via the 
   <folder_name>/
     masked_images/
       *.jpg
+    images_with_tracked_points/              (point mode, instead of masked_images)
+      *_tracked.jpg
     <folder_name>_centroids.xlsx
     <folder_name>_coordinates.json
     <folder_name>_tracked_points.xlsx        (optional, point mode)
@@ -470,6 +473,8 @@ Dropping an icon file in `volute/resources/` gives the application its own icon 
 ### Progress Animation
 Dropping an animated `progress.webp` or `progress.gif` in `volute/resources/` makes every progress dialog show it centred above its progress bar, as a complement to the bar rather than a replacement. Without such a file the dialogs keep their usual layout and size. See that directory's README for authoring notes.
 
+It keeps the file's proportions, 120 logical pixels high by default; `ui.progress_animation_size` (settings dialog, *Progress animation size (%)*) scales it from 20 % to 240 %, and `ui.progress_animation_show` (*Show the progress animation*) turns it off, the dialogs then keeping their usual layout. The dialogs widen to fit a large animation.
+
 Every operation that shows a progress dialog runs its work in a worker thread, so the dialog stays responsive and the animation plays at the frame durations stored in the file. `ui.progress_animation_pacing` (settings dialog, *Progress animation pace*) switches prediction, propagation and the SAM2 state export and import to `"progress"`, where the animation advances one frame per progress update instead, never faster than the file.
 
 ### Localization
@@ -492,7 +497,7 @@ External YAML configuration file (`volute_config.yaml`), editable from **File �
 - Debug flags (`enabled`, `show_filename_mappings`, `show_mask_sync_details`)
 - Maximum number of frames kept in memory during SAM2 inference (LRU cache), parameter `performance.image_cache_size`. Default: 32. Set to 0 for unlimited.
 - SAM2++ task (`models.sam2plus.task`): `mask` (default) or `point`
-- GIMP command-line executable override for the mask-editing export (`gimp.executable_path`); leave unset, which is the default, to auto-detect. Detection looks up `gimp-console` then `gimp` on `PATH`, and failing that inside `/Applications/GIMP.app/Contents/MacOS/`, since a macOS install puts neither on `PATH` — note that a shell alias does not help there, the application looks the name up itself and aliases do not exist outside the shell. `gimp-console` is preferred at every step: it carries no GUI, so it opens no window, flashes no Dock icon, and cannot fail for want of a display connection, which the full binary can even under `-i`. Set the override only to name an installation the search does not reach; an override that does not point at an executable file is reported as "not detected" rather than quietly falling back to the search
+- GIMP command-line executable override for the mask-editing export (`gimp.executable_path`); leave unset, which is the default, to auto-detect. Detection looks up `gimp-console` then `gimp` on `PATH`, and failing that inside `/Applications/GIMP.app/Contents/MacOS/`, since a macOS install puts neither on `PATH` — note that a shell alias does not help there, the application looks the name up itself and aliases do not exist outside the shell — then at `/snap/bin/gimp`, GIMP's Snap on Linux, keeping the first that reports GIMP 3 or later (`--version`): the `apt` package of Ubuntu 22.04 and 24.04, GIMP 2.10, is passed over, the batch scripts needing the Python-Fu of GIMP 3. Failing all of these, GIMP's Flatpak from Flathub, `org.gimp.GIMP`, is run through `flatpak run --command=gimp-console`. The Snap's `/tmp` being private to it, the files exchanged with a Snap's GIMP go into `~/snap/gimp/common` instead. `gimp-console` is preferred at every step: it carries no GUI, so it opens no window, flashes no Dock icon, and cannot fail for want of a display connection, which the full binary can even under `-i`. Set the override only to name an installation the search does not reach; an override that does not point at an executable file is reported as "not detected" rather than quietly falling back to the search
 - ffmpeg executable override for frame extraction from a video (`ffmpeg.executable_path`); leave unset, which is the default, to auto-detect. Detection looks up `ffmpeg` on `PATH`, and failing that in the usual install locations an application started from the macOS Finder does not have on its `PATH` — the active conda environment's own `bin/`, then `/opt/homebrew/bin`, `/usr/local/bin`, `/opt/local/bin`, `/usr/bin` and `/snap/bin`. As for GIMP, a shell alias does not help, and an override that does not point at an executable file is reported as "not detected". ffprobe is looked for next to the ffmpeg found, then on `PATH`
 
 ---
@@ -520,7 +525,7 @@ python tools/VOLUTE.py --checkpoint ./checkpoints/sam2.1_hiera_large.pt \
                          --config configs/sam2.1/sam2.1_hiera_l.yaml
 ```
 
-Platform-specific launcher scripts can be generated with `install_launchers_Unix_MacOS.sh` (macOS / Linux) or `install_launchers_windows.bat`, into `tools/launchers/`. Their one job is to move to the root of the installation before starting the GUI, which the application cannot do for itself: `volute.sh` names no model, so the startup chooser opens as usual, while the per-model scripts pass the model on the command line and skip it. The Windows launchers also carry the full path of the environment's Python interpreter, found and checked when they are generated, and put the environment's directories on `PATH` the way activating it would: they therefore work by double-click with no conda environment activated, keep their window open when the application stops on an error, and come with a **VOLUTE** shortcut on the Desktop. The macOS/Linux scripts run whichever `python` is on `PATH`, so the environment must be active. The whole `launchers/` directory, its README included, is generated — re-run the script to refresh it, after moving the installation or recreating the environment, and keep it out of version control.
+Platform-specific launcher scripts can be generated with `install_launchers_Unix_MacOS.sh` (macOS / Linux) or `install_launchers_windows.bat`, into `tools/launchers/`. Their one job is to move to the root of the installation before starting the GUI, which the application cannot do for itself: `volute.sh` names no model, so the startup chooser opens as usual, while the per-model scripts pass the model on the command line and skip it. The Windows launchers also carry the full path of the environment's Python interpreter, found and checked when they are generated, and put the environment's directories on `PATH` the way activating it would: they therefore work by double-click with no conda environment activated, keep their window open when the application stops on an error, and come with a **VOLUTE** shortcut on the Desktop. The macOS/Linux scripts run whichever `python` is on `PATH`, so the environment must be active, unless they are generated with `--python PATH`, which names the interpreter in each of them, as the one-command installer does on Linux, where it also writes an applications-menu entry, `~/.local/share/applications/volute.desktop`. The whole `launchers/` directory, its README included, is generated — re-run the script to refresh it, after moving the installation or recreating the environment, and keep it out of version control.
 
 ### macOS application bundle (optional)
 

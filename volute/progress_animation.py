@@ -2,15 +2,15 @@
 Optional animated indicator for progress dialogs.
 
 The animation complements a progress bar, it never replaces one: when no
-animation file sits in resources/, the helper returns None and the dialogs lay
-out exactly as they do without it.
+animation file sits in resources/, or the settings turn it off, the helper
+returns None and the dialogs lay out exactly as they do without it.
 """
 
 import time
 from pathlib import Path
 
 from PyQt5.QtCore import QSize
-from PyQt5.QtGui import QMovie
+from PyQt5.QtGui import QImageReader, QMovie
 from PyQt5.QtWidgets import QHBoxLayout, QLabel
 
 RESOURCES = Path(__file__).parent / "resources"
@@ -29,12 +29,13 @@ EXTENSIONS = ("webp", "gif")
 PACING_FILE = "file"
 PACING_PROGRESS = "progress"
 
-# Side of the square the animation is drawn in, in logical pixels. The
-# animation sits above the progress bar rather than beside it, so this can grow
-# without crowding anything; change it here and every dialog follows. Author
-# the file at twice this value, since a HiDPI display draws two device pixels
-# per logical one and would otherwise upscale and blur it.
-DISPLAY_SIZE = 96
+# Height the animation is drawn at, in logical pixels, before the
+# ui.progress_animation_size percentage applies; its width follows from the
+# file's proportions. The animation sits above the progress bar rather than
+# beside it, so it can grow without crowding anything. Author the file at least
+# twice the displayed size, since a HiDPI display draws two device pixels per
+# logical one and would otherwise upscale and blur it.
+DISPLAY_HEIGHT = 120
 
 
 def find_animation():
@@ -46,14 +47,34 @@ def find_animation():
     return None
 
 
-def create_progress_animation(parent=None, size=DISPLAY_SIZE):
-    """Return a QLabel playing the animation, or None when there is none.
+def display_size(path, height):
+    """Size to draw the animation at: the given height, and the width that
+    keeps the file's proportions (a square when they cannot be read)."""
+    source = QImageReader(str(path)).size()
+    if source.isValid() and source.height() > 0:
+        width = max(1, round(height * source.width() / source.height()))
+    else:
+        width = height
+    return QSize(width, height)
+
+
+def create_progress_animation(parent=None, height=None):
+    """Return a QLabel playing the animation, or None when there is none or
+    the settings turn it off.
 
     Callers place the widget above their progress bar and skip it when it is
-    None, which is what makes the animation optional. The movie is returned
-    stopped: drive it with start() and stop() below so it only runs while the
-    operation does.
+    None, which is what makes the animation optional. Without a height, the
+    one the settings give is used. The movie is returned stopped: drive it
+    with start() and stop() below so it only runs while the operation does.
     """
+    if height is None:
+        config_manager = find_config_manager(parent)
+        if config_manager is not None and not config_manager.show_progress_animation():
+            return None
+        percent = (config_manager.get_progress_animation_size()
+                   if config_manager is not None else 100)
+        height = max(1, round(DISPLAY_HEIGHT * percent / 100))
+
     path = find_animation()
     if path is None:
         return None
@@ -66,10 +87,11 @@ def create_progress_animation(parent=None, size=DISPLAY_SIZE):
     # hosting this share a thread with the operation they report on, so any
     # work deferred to playback competes with that operation.
     movie.setCacheMode(QMovie.CacheAll)
-    movie.setScaledSize(QSize(size, size))
+    size = display_size(path, height)
+    movie.setScaledSize(size)
 
     label = QLabel(parent)
-    label.setFixedSize(size, size)
+    label.setFixedSize(size)
     # QLabel.setMovie does not take ownership, so the movie needs a parent of
     # its own; without one Python collects it and nothing ever plays.
     movie.setParent(label)
@@ -77,15 +99,15 @@ def create_progress_animation(parent=None, size=DISPLAY_SIZE):
     return label
 
 
-def create_centred_row(parent=None, size=DISPLAY_SIZE):
+def create_centred_row(parent=None, height=None):
     """Return (row, label) placing the animation centred on a row of its own,
-    or (None, None) when no animation is installed.
+    or (None, None) when there is none to show.
 
     Dialogs add the row above their progress bar and keep the label to start()
     and stop() it. Going through one builder keeps every dialog consistent,
     and leaves them untouched when there is nothing to show.
     """
-    label = create_progress_animation(parent, size)
+    label = create_progress_animation(parent, height)
     if label is None:
         return None, None
 
@@ -109,15 +131,24 @@ def stop(label):
         label.movie().stop()
 
 
-def configured_pacing(widget):
-    """The pacing setting, reached through the widget's chain of parents;
-    PACING_FILE when none of them carries a configuration manager."""
+def find_config_manager(widget):
+    """The configuration manager, reached through the widget's chain of
+    parents; None when none of them carries one."""
     while widget is not None:
         config_manager = getattr(widget, "config_manager", None)
         if config_manager is not None:
-            return config_manager.get_progress_animation_pacing()
+            return config_manager
         widget = widget.parent()
-    return PACING_FILE
+    return None
+
+
+def configured_pacing(widget):
+    """The pacing setting, reached through the widget's chain of parents;
+    PACING_FILE when none of them carries a configuration manager."""
+    config_manager = find_config_manager(widget)
+    if config_manager is None:
+        return PACING_FILE
+    return config_manager.get_progress_animation_pacing()
 
 
 def show_first_frame(label):

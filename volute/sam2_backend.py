@@ -11,6 +11,7 @@ import numpy as np
 import shutil
 import tempfile
 import re
+import contextlib
 from collections import OrderedDict
 from pathlib import Path
 from .filename_manager import FilenameManager
@@ -128,6 +129,8 @@ class SAM2Backend:
         self.device           = None
         self.video_predictor  = None
         self.inference_state  = None
+        # Why the last initialize() failed, for the error the user sees
+        self.init_error       = None
 
         self.image_cache_size = image_cache_size
 
@@ -148,6 +151,7 @@ class SAM2Backend:
         model_type is 'sam2', 'medsam2' or 'sam2plus'; when None it is
         inferred from the checkpoint path (see infer_model_type).
         """
+        self.init_error = None
         try:
             if self.debug_mode:
                 print(f"Initializing model with checkpoint: {checkpoint_path}")
@@ -169,8 +173,13 @@ class SAM2Backend:
                 self.device = torch.device("cuda")
                 if self.debug_mode:
                     print("Using CUDA")
-                torch.autocast("cuda", dtype=torch.bfloat16).__enter__()
-                if torch.cuda.get_device_properties(0).major >= 8:
+                # bfloat16 from Turing (7.5) on; older GPUs (Maxwell, Pascal,
+                # Volta), which have no bfloat16 arithmetic, compute in float32
+                # (see _autocast)
+                capability = torch.cuda.get_device_capability(0)
+                if capability >= (7, 5):
+                    torch.autocast("cuda", dtype=torch.bfloat16).__enter__()
+                if capability[0] >= 8:
                     torch.backends.cuda.matmul.allow_tf32 = True
                     torch.backends.cudnn.allow_tf32 = True
             elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
@@ -227,11 +236,23 @@ class SAM2Backend:
             return True
 
         except Exception as e:
+            self.init_error = f"{type(e).__name__}: {e}"
+            # Printed whatever the debug mode, so that a start from a terminal
+            # shows it
+            print(f"Error initializing model: {self.init_error}", file=sys.stderr)
             if self.debug_mode:
-                print(f"Error initializing model: {e}")
                 import traceback
                 traceback.print_exc()
             return False
+
+    def _autocast(self):
+        """Mixed precision for SAM2's computations: bfloat16, except on a CUDA
+        GPU older than Turing (compute capability 7.5), which has no bfloat16
+        arithmetic and computes in float32."""
+        if (self.device.type == "cuda"
+                and torch.cuda.get_device_capability(self.device) < (7, 5)):
+            return contextlib.nullcontext()
+        return torch.autocast(self.device.type, dtype=torch.bfloat16)
 
     def _model_label(self):
         """Return a short human-readable model name."""
@@ -344,7 +365,7 @@ class SAM2Backend:
             raise RuntimeError("Inference state not initialized")
 
         try:
-            with torch.inference_mode(), torch.autocast(self.device.type, dtype=torch.bfloat16):
+            with torch.inference_mode(), self._autocast():
                 if points is None or len(points) == 0:
                     points, labels = None, None
                 else:
@@ -385,7 +406,7 @@ class SAM2Backend:
             raise RuntimeError("Inference state not initialized")
 
         try:
-            with torch.inference_mode(), torch.autocast(self.device.type, dtype=torch.bfloat16):
+            with torch.inference_mode(), self._autocast():
                 if not isinstance(mask, torch.Tensor):
                     mask = torch.from_numpy(np.asarray(mask))
                 mask = mask.to(torch.bool)
@@ -424,7 +445,7 @@ class SAM2Backend:
             raise RuntimeError("Inference state not initialized")
 
         try:
-            with torch.inference_mode(), torch.autocast(self.device.type, dtype=torch.bfloat16):
+            with torch.inference_mode(), self._autocast():
                 if self.debug_mode:
                     direction = "backward" if reverse else "forward"
                     print(f"Starting {direction} propagation from frame {start_frame_idx}")
@@ -468,7 +489,7 @@ class SAM2Backend:
         if not self.is_sam2plus:
             raise RuntimeError("predict_point_track requires SAM2++ backend")
 
-        with torch.inference_mode(), torch.autocast(self.device.type, dtype=torch.bfloat16):
+        with torch.inference_mode(), self._autocast():
             points = np.array([[point_xy[0], point_xy[1]]], dtype=np.float32)
             labels = np.array([1], dtype=np.int32)   # single positive point
             result = self.video_predictor.add_new_points_and_generate_gaussian_mask(
@@ -496,7 +517,7 @@ class SAM2Backend:
             raise RuntimeError("propagate_point_tracks requires SAM2++ backend")
 
         try:
-            with torch.inference_mode(), torch.autocast(self.device.type, dtype=torch.bfloat16):
+            with torch.inference_mode(), self._autocast():
                 if self.debug_mode:
                     direction = "backward" if reverse else "forward"
                     print(f"Starting {direction} point-track propagation "
@@ -553,7 +574,7 @@ class SAM2Backend:
                 print(f"Adding points: frame {frame_idx}, obj {obj_id}, "
                       f"points shape: {points.shape}")
 
-            with torch.inference_mode(), torch.autocast(self.device.type, dtype=torch.bfloat16):
+            with torch.inference_mode(), self._autocast():
                 result = self.video_predictor.add_new_points_or_box(
                     inference_state=self.inference_state,
                     frame_idx=frame_idx,
@@ -585,7 +606,7 @@ class SAM2Backend:
 
             video_segments = {}
 
-            with torch.inference_mode(), torch.autocast(self.device.type, dtype=torch.bfloat16):
+            with torch.inference_mode(), self._autocast():
                 for result in self.video_predictor.propagate_in_video(
                     self.inference_state, start_frame_idx=start_frame_idx
                 ):

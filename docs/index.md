@@ -25,8 +25,9 @@ line:
 
 - [Installing VOLUTE on Windows](install-windows.md)
 - [Installing VOLUTE on macOS](install-macos.md)
+- [Installing VOLUTE on Linux (Ubuntu)](install-linux.md)
 
-On Linux, or to install by hand, see
+On another Linux distribution, or to install by hand, see
 [INSTALL.md](https://github.com/nicolasaudibert/VOLUTE/blob/main/INSTALL.md).
 
 ## Using VOLUTE

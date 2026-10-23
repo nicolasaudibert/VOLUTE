@@ -1,5 +1,5 @@
-/* VOLUTE purple, from the logo: the light version on a light page, the
-   lighter one of lockup_dark.svg on a dark page. */
+/* VOLUTE purple: the darker one on a light page, a lighter one on a dark
+   page. */
 :root > * {
   --md-primary-fg-color: #7e50ad;
   --md-primary-fg-color--light: #9b74c4;
@@ -16,9 +16,9 @@
   --md-typeset-a-color: #b58ee0;
 }
 
-/* The logo is the horizontal lockup, which carries the name: room for it,
-   and the site name beside it hidden. In the header, the page title still
-   replaces it on scroll. */
+/* The logo is the horizontal lockup, the icon and the spelled-out acronym,
+   which carry the name: room for it, and the site name beside it hidden. In
+   the header, the page title still replaces it on scroll. */
 .md-header__button.md-logo {
   width: auto;
   height: auto;
@@ -48,4 +48,25 @@
 [data-md-color-scheme="default"] .md-logo img.logo-dark,
 [data-md-color-scheme="slate"] .md-logo img.logo-light {
   display: none !important;
+}
+
+/* A taller header on wide screens, where the theme shows the logo there: the
+   theme's own offsets, sized for its 2.4rem header, follow. */
+@media screen and (min-width: 76.25em) {
+  .md-header__button.md-logo {
+    padding: .2rem;
+  }
+  .md-header__button.md-logo img {
+    height: 2.6rem;
+  }
+  .md-header__title {
+    height: 3.4rem;
+    line-height: 3.4rem;
+  }
+  .md-sidebar {
+    top: 3.4rem;
+  }
+  .md-typeset :target {
+    --md-scroll-margin: 4.6rem;
+  }
 }

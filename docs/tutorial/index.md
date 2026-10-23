@@ -4,8 +4,9 @@
 
 This tutorial walks through VOLUTE one step at a time, on a real example: a short dynamic
 MRI video (also called real-time MRI) of a person speaking. It assumes only that VOLUTE is
-installed — see the guides for [Windows](../install-windows.md) and
-[macOS](../install-macos.md) — and no knowledge of programming.
+installed — see the guides for [Windows](../install-windows.md),
+[macOS](../install-macos.md) and [Linux](../install-linux.md) — and no knowledge of
+programming.
 
 ![Four frames of the example video, with the vocal tract in blue and the tongue in orange on each](images/en/tracking-propagated.webp)
 

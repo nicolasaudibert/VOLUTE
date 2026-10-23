@@ -23,7 +23,7 @@ add_points	Ajouter des points	Radio button text
 add_points_tooltip	Clic gauche : point positif | Clic droit ou Ctrl+clic : point négatif	Tooltip for add points radio button
 remove_points_tooltip	Cliquer-glisser pour sélectionner une zone | Tous les points du rectangle seront supprimés	Tooltip for remove points radio button
 define_box	Définir une boîte	Radio button text
-define_box_tooltip	Cliquer-glisser pour définir une boîte englobante | Une boîte par objet et par image, combinée aux points de cette image	Tooltip for define box radio button
+define_box_tooltip	Cliquer-glisser pour définir une boîte englobante | Une boîte par objet et par image, combinée aux points de cette image | Passe en mode Ajouter des points une fois la boîte tracée	Tooltip for define box radio button
 remove_box_btn	Supprimer la boîte	Button text
 box_points_outside_title	Points hors de la boîte	Dialog title
 box_points_outside_msg	{0} point(s) positif(s) et {1} point(s) négatif(s) de cet objet sur cette image sont hors de la boîte qui vient d'être tracée. SAM2 reçoit la boîte et les points ensemble : les points positifs hors de la boîte la contredisent, tandis que les points négatifs vont dans son sens, mais peuvent ne plus être utiles.	Dialog message
@@ -134,6 +134,8 @@ settings_default_model	Modèle par défaut :	Settings label
 settings_native_dialogs	Sélecteurs de fichiers du système :	Settings label
 settings_import_confirmation	Réponse par défaut aux dialogues d'import :	Settings label
 settings_progress_font	Taille de police des détails de progression :	Settings label
+settings_animation_show	Afficher l'animation de progression :	Settings label (checkbox)
+settings_animation_size	Taille de l'animation de progression (%) :	Settings label: height as a percentage of the default
 settings_animation_pacing	Rythme de l'animation de progression :	Settings label
 settings_coordinates_format	Format des coordonnées de masques :	Settings label
 settings_centroids_format	Format des centres de gravité :	Settings label
@@ -317,6 +319,7 @@ batch_ready	Prêt.	Initial status label text
 batch_opt_propagate	Propager les masques	Checkbox label
 batch_opt_propagate_points	Propager les points	Checkbox label (SAM2++ point tracking mode)
 batch_opt_export_tracked_points_tooltip	Disponible quand VOLUTE utilise SAM2++ en mode suivi de points	Tooltip of the disabled Export tracked points checkbox
+batch_opt_mask_mode_tooltip	Disponible quand VOLUTE segmente des masques, hors du mode suivi de points de SAM2++	Tooltip of the disabled mask export checkboxes (point tracking mode)
 batch_opt_export_images	Exporter les images masquées	Checkbox label
 batch_opt_state_predict	Exporter l'état d'inférence (prédiction)	Checkbox label
 batch_opt_state_prop	Exporter l'état d'inférence (propagation)	Checkbox label
@@ -354,6 +357,7 @@ batch_log_propagating_points	Propagation des points suivis…	Batch log (SAM2++ 
 batch_log_exporting_state_propagate	Export de l'état d'inférence (propagation)…	Batch log
 batch_log_exporting_images	Export des images masquées…	Batch log
 batch_log_images_exported	{0} image(s) exportée(s)	Batch log: number of images exported
+batch_log_exporting_tracked_images	Export des images avec les points suivis…	Batch log (SAM2++ point tracking mode)
 batch_log_exporting_centroids	Export des centres de gravité…	Batch log
 batch_log_exporting_coordinates	Export des coordonnées des masques…	Batch log
 batch_log_exporting_contours	Export des coordonnées des contours…	Batch log

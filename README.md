@@ -1,11 +1,9 @@
 # VOLUTE
 
-**V**ideo **O**bject **L**abeling, **U**ser-guided **T**racking and **E**xtraction
-
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/lockup_dark.svg">
-    <img src="docs/lockup.svg" alt="VOLUTE" width="320">
+    <img src="docs/lockup.svg" alt="VOLUTE — Video Object Labeling, User-guided Tracking and Extraction" width="320">
   </picture>
 </p>
 
@@ -46,9 +44,9 @@ across video frames, but nothing in it is specific to that field.
 
 ## Installation
 
-On **macOS** and **Windows**, one command pasted into the Terminal or PowerShell installs
-everything — Python environment, PyTorch, SAM2-Plus, the models chosen and VOLUTE — into a
-folder of its own, and creates the launcher:
+On **macOS**, **Windows** and **Linux** (Ubuntu 22.04 and 24.04), one command pasted into a
+terminal or PowerShell installs everything — Python environment, PyTorch, SAM2-Plus, the
+models chosen and VOLUTE — into a folder of its own, and creates the launcher:
 
 ```bash
 # macOS (Terminal)
@@ -60,10 +58,15 @@ folder of its own, and creates the launcher:
 powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/nicolasaudibert/VOLUTE/main/install/install_volute_windows.ps1 | iex"
 ```
 
-Running it again updates VOLUTE. Step-by-step guides for newcomers to the command line:
-[Windows](docs/install-windows.md) ([français](docs/install-windows.fr.md)) and [macOS](docs/install-macos.md) ([français](docs/install-macos.fr.md)); details are in **[INSTALL.md](INSTALL.md#quick-installation-windows-and-macos)**.
+```bash
+# Linux (terminal)
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/nicolasaudibert/VOLUTE/main/install/install_volute_linux.sh)"
+```
 
-For Linux, or to install by hand:
+Running it again updates VOLUTE. Step-by-step guides for newcomers to the command line:
+[Windows](docs/install-windows.md) ([français](docs/install-windows.fr.md)), [macOS](docs/install-macos.md) ([français](docs/install-macos.fr.md)) and [Linux](docs/install-linux.md) ([français](docs/install-linux.fr.md)); details are in **[INSTALL.md](INSTALL.md#quick-installation-windows-macos-and-linux)**.
+
+For another Linux distribution, or to install by hand:
 
 1. Install SAM2 (or SAM2++/MedSAM2) and download the checkpoints
 2. Install the GUI dependencies
@@ -109,10 +112,10 @@ A first pass over a sequence, from an empty window to exported masks:
    slider or the frame spinbox below the canvas.
 3. **Create an object.** **Add object** in the Objects tab. Give it a name and a colour, or
    keep the defaults.
-4. **Outline it.** In *Define box* mode, drag a bounding box around the object. Then, with
-   *Add points* mode active, left-click inside the object, and right-click (or `Ctrl`-click)
-   on what to leave out. A box alone may do for a compact object; points alone work too,
-   but the box usually brings the first mask closer.
+4. **Outline it.** A new object starts in *Define box* mode: drag a bounding box around
+   the object. The mode then switches to *Add points*: left-click inside the object, and
+   right-click (or `Ctrl`-click) on what to leave out. A box alone may do for a compact
+   object; points alone work too, but the box usually brings the first mask closer.
 5. **Segment the frame.** **Predict masks on current image**. Adjust by adding points and
    predicting again until the mask is right.
 6. **Follow it through the sequence.** **Propagate masks through video** tracks the object

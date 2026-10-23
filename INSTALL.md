@@ -5,7 +5,7 @@ Supports SAM2, MedSAM2 (optional), and SAM2++ backends in a single environment.
 
 ## Table of Contents
 
-1. [Quick Installation (Windows and macOS)](#quick-installation-windows-and-macos)
+1. [Quick Installation (Windows, macOS and Linux)](#quick-installation-windows-macos-and-linux)
 2. [Prerequisites](#prerequisites)
 3. [Environment Setup](#environment-setup)
 4. [SAM2++ Installation](#sam2-installation)
@@ -17,7 +17,7 @@ Supports SAM2, MedSAM2 (optional), and SAM2++ backends in a single environment.
 10. [Running the Application](#running-the-application)
 11. [Troubleshooting](#troubleshooting)
 
-## Quick Installation (Windows and macOS)
+## Quick Installation (Windows, macOS and Linux)
 
 One command installs everything VOLUTE needs into a folder of its own — Miniforge, a
 Python environment, PyTorch, SAM2-Plus, the models chosen and VOLUTE itself — and creates
@@ -36,14 +36,24 @@ Anaconda installation is left alone, and no shell or `PATH` setting is modified.
 powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/nicolasaudibert/VOLUTE/main/install/install_volute_windows.ps1 | iex"
 ```
 
+**Linux** (Ubuntu 22.04 and 24.04; other distributions untested) — open a terminal
+(Ctrl + Alt + T) and paste, with Ctrl + Shift + V:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/nicolasaudibert/VOLUTE/main/install/install_volute_linux.sh)"
+```
+
+or, where `curl` is missing, `bash -c "$(wget -qO- …)"` with the same address. No
+administrator rights are needed.
+
 Step-by-step guides, written for newcomers to the command line, walk through it:
-[Windows](docs/install-windows.md) ([français](docs/install-windows.fr.md)) and [macOS](docs/install-macos.md) ([français](docs/install-macos.fr.md)).
+[Windows](docs/install-windows.md) ([français](docs/install-windows.fr.md)), [macOS](docs/install-macos.md) ([français](docs/install-macos.fr.md)) and [Linux](docs/install-linux.md) ([français](docs/install-linux.fr.md)).
 
 The installer shows what it detected, asks which models to download, then works on its
 own. Depending on the connection, the hardware and the models, it takes 15 to 45 minutes
 and 6 to 10 GB of disk space.
 
-- **Folder**: `~/VOLUTE` on macOS; `%USERPROFILE%\VOLUTE` on Windows, or `C:\VOLUTE`
+- **Folder**: `~/VOLUTE` on macOS and Linux; `%USERPROFILE%\VOLUTE` on Windows, or `C:\VOLUTE`
   when the user folder's path contains spaces or accented letters, which conda handles
   poorly. Set `VOLUTE_PREFIX` to choose another one. It holds `miniforge3` (Python and
   the environment), `SAM2-Plus` — whichever models are chosen, since it also provides
@@ -53,8 +63,10 @@ and 6 to 10 GB of disk space.
   succeeds, and kept after an interrupted one, which then resumes from it.
 - **Hardware**: a Mac with Apple Silicon gets GPU acceleration (MPS); an Intel Mac the
   PyTorch build of conda-forge, PyPI no longer providing one, and runs markedly slower; an
-  NVIDIA GPU the CUDA build matching what its driver supports, read from `nvidia-smi`; any
-  other computer a CPU build, which works, but segmentation is markedly slower.
+  NVIDIA GPU the CUDA build matching what its driver supports, read from `nvidia-smi`, and,
+  when older than Turing (compute capability below 7.5), the CUDA 12.6 build, the last to
+  support it, computing in float32; any other computer a CPU build, which works, but
+  segmentation is markedly slower.
 - **SAM2's CUDA extension** is not compiled, which would need Visual Studio and the CUDA
   toolkit; the [post-processing patch](#optional-cpumps-fallback-patch-for-mask-post-processing)
   is applied instead.
@@ -63,13 +75,21 @@ and 6 to 10 GB of disk space.
   `sam2/configs/medsam2_configs/` — or `a` for all of them; `--models` passed to the
   installer answers the question beforehand.
 - **ffmpeg** comes with the environment, for frame extraction from a video.
+- **PyQt5**, on Linux, comes from conda-forge rather than PyPI: its Qt brings the X11
+  libraries (`libxcb-*`) the PyPI wheel needs from the system, so that nothing has to be
+  installed with `sudo`. Before creating the launcher, the installer opens a Qt window for
+  an instant, so that a library still missing shows then rather than at VOLUTE's first
+  start; it skips that check without a graphical session.
 - **Launcher**: `VOLUTE.app` in the `Applications` folder of the home folder on macOS, a
-  **VOLUTE** shortcut on the Desktop on Windows.
+  **VOLUTE** shortcut on the Desktop on Windows, an entry in the applications menu on
+  Linux (`~/.local/share/applications/volute.desktop`, running
+  `tools/launchers/volute.sh`, which names the environment's Python).
 - **Updating**: run the same command again. VOLUTE is updated to its latest release, the
   settings in `volute_config.yaml` are kept, and further models can be added; whatever is
   already installed is not downloaded again. The same applies after an interrupted
   installation.
-- **Uninstalling**: delete the folder, and `VOLUTE.app` or the Desktop shortcut.
+- **Uninstalling**: delete the folder, and `VOLUTE.app`, the Desktop shortcut or
+  `volute.desktop`.
 - **Log**: `install.log` in the folder records every step, with the error messages of
   pip and conda, for troubleshooting.
 
@@ -289,7 +309,7 @@ the `volute_config.yaml` configuration.
 
 ## MedSAM2 Setup (Optional)
 
-The [one-command installer](#quick-installation-windows-and-macos) downloads MedSAM2 when it is
+The [one-command installer](#quick-installation-windows-macos-and-linux) downloads MedSAM2 when it is
 chosen; the steps below are for a manual installation.
 
 SAM2++ bundles the `sam2` package internally. MedSAM2 also depends on `sam2`, so it
@@ -440,7 +460,8 @@ Ready-made launchers, one per model plus one that asks, are generated into
   ```
 
 - **macOS/Linux**: `bash tools/install_launchers_Unix_MacOS.sh`. These launchers run
-  whichever `python` is on `PATH`, so the `sam2_plus` environment must be active. On
+  whichever `python` is on `PATH`, so the `sam2_plus` environment must be active; with
+  `--python PATH`, they run that interpreter instead, with no activation needed. On
   macOS, `bash tools/install_app_bundle_macos.sh` instead builds a double-clickable
   `VOLUTE.app` bound to the environment's interpreter, with no activation needed.
 
@@ -588,7 +609,13 @@ Run Command Prompt or PowerShell as Administrator.
 
 **Linux**
 - CUDA support requires an NVIDIA GPU and matching CUDA toolkit.
-- Qt system libraries may be needed: `sudo apt-get install python3-pyqt5 libxcb-xinerama0`.
+- PyQt5 from PyPI needs X11 libraries from the system, without which it stops with "Could
+  not load the Qt platform plugin xcb": either install PyQt5 from conda-forge instead
+  (`conda install -c conda-forge pyqt=5`, after `pip uninstall PyQt5`), whose Qt brings
+  them, or install them: `sudo apt-get install libxcb-xinerama0 libxcb-icccm4
+  libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxkbcommon-x11-0`.
+- GIMP 3 is needed for the editing round-trip; the `apt` package of Ubuntu 22.04 and
+  24.04 is GIMP 2.10. VOLUTE finds GIMP 3 installed as a Flatpak (Flathub) or a Snap.
 
 ### Debug Mode
 

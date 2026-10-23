@@ -70,8 +70,9 @@ In this example, a single row: the project just saved, and its frame folder.
   `sam2_file`, `image_folder` and `ref_frame`.
 - **Processing Options** chooses what is computed and exported: propagation, images with
   masks, centroids and mask coordinates by default, hulls and contours on request.
-  **Export tracked points** concerns VOLUTE started with SAM2++ in point tracking mode
-  (step 10), and stays greyed out otherwise.
+  With SAM2++ in point tracking mode (step 10), the images carry the tracked points,
+  **Export tracked points** is ticked by default and the mask-only exports are greyed
+  out; in the other mode, **Export tracked points** is the one greyed out.
 - The **Reference Points** tab adds the distances of step 8, and the **Imported Points**
   tab the analysis of step 10.
 - **Output folder** receives one folder per frame folder.

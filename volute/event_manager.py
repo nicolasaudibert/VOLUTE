@@ -406,6 +406,8 @@ class EventManager:
 
         self._set_box_with_undo(obj_id, frame_idx, (x0, y0, x1, y1),
                                 label="Define box", delete_mask=delete_mask)
+        # Points come after the box
+        self.main_window.set_prompt_mode(self.main_window.MODE_ADD_POINTS)
 
     def _set_box_with_undo(self, obj_id, frame_idx, box, label, delete_mask=False):
         """Set, replace, or remove (box=None) the object's box on a frame,

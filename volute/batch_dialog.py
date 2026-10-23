@@ -167,14 +167,15 @@ class BatchDialog(QDialog):
         checks = [
             (self.loc.get_text("batch_opt_propagate_points" if point_mode
                                else "batch_opt_propagate"),   'opt_propagate',            True,  0, 0),
-            (self.loc.get_text("batch_opt_export_images"),    'opt_export_images',        True,  0, 1),
+            (self.loc.get_text("export_images_with_tracked_points" if point_mode
+                               else "batch_opt_export_images"), 'opt_export_images', True,  0, 1),
             (self.loc.get_text("export_centroids"),           'opt_export_centroids',     True,  1, 0),
             (self.loc.get_text("export_coordinates"),         'opt_export_coords',        True,  1, 1),
             (self.loc.get_text("batch_opt_state_predict"),    'opt_export_state_predict', False, 2, 0),
             (self.loc.get_text("batch_opt_state_prop"),       'opt_export_state_prop',    False, 2, 1),
             (self.loc.get_text("batch_opt_export_hull"),      'opt_export_hull_coords',   False, 3, 0),
             (self.loc.get_text("batch_opt_export_contour"),   'opt_export_contour_coords', False, 3, 1),
-            (self.loc.get_text("export_tracked_points"),      'opt_export_tracked_points', False, 4, 0),
+            (self.loc.get_text("export_tracked_points"),      'opt_export_tracked_points', point_mode, 4, 0),
         ]
         for label, attr, default, row, col in checks:
             cb = QCheckBox(label)
@@ -188,6 +189,13 @@ class BatchDialog(QDialog):
             self.opt_export_tracked_points.setToolTip(
                 self.loc.get_text("batch_opt_export_tracked_points_tooltip")
             )
+        # Point tracking computes no mask: nothing for these exports to write
+        if point_mode:
+            for cb in (self.opt_export_centroids, self.opt_export_coords,
+                       self.opt_export_hull_coords, self.opt_export_contour_coords):
+                cb.setChecked(False)
+                cb.setEnabled(False)
+                cb.setToolTip(self.loc.get_text("batch_opt_mask_mode_tooltip"))
 
 
         # Hull smoothing (enabled only when export hull coords is checked)
@@ -244,7 +252,11 @@ class BatchDialog(QDialog):
         bg_layout.addWidget(self.bg_opacity_label)
         grid.addWidget(bg_widget, 7, 0, 1, 2)  # row 7
 
-        self.opt_export_images.toggled.connect(bg_widget.setEnabled)
+        # Tracked point images have no background opacity
+        if point_mode:
+            bg_widget.setEnabled(False)
+        else:
+            self.opt_export_images.toggled.connect(bg_widget.setEnabled)
 
         return group
 

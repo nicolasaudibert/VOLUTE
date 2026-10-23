@@ -45,7 +45,6 @@ class ControlPanels:
 
         self.controls['add_points_radio'] = QRadioButton(
             self.localization.get_text("add_points"))
-        self.controls['add_points_radio'].setChecked(True)
         self.controls['add_points_radio'].setToolTip(
             self.localization.get_text("add_points_tooltip"))
         self.controls['point_mode_group'].addButton(
@@ -62,6 +61,8 @@ class ControlPanels:
 
         self.controls['define_box_radio'] = QRadioButton(
             self.localization.get_text("define_box"))
+        # An object starts from its box: Object 1 at startup, like each new object
+        self.controls['define_box_radio'].setChecked(True)
         self.controls['define_box_radio'].setToolTip(
             self.localization.get_text("define_box_tooltip"))
         self.controls['point_mode_group'].addButton(

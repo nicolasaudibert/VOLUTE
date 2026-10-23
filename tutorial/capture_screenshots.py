@@ -552,11 +552,8 @@ class Session:
         self.save(self.ui._tab_widget, "object-objects-tab",
                   down_to=self.control("obj_name_edit").parentWidget())
 
-        self.control("define_box_radio").setChecked(True)
-        self.pump(0.2)
         self.drag_image(*VOCAL_TRACT_BOX)
         self.save_image_area("object-box")
-        self.control("add_points_radio").setChecked(True)
 
         for step, clicks in enumerate(VOCAL_TRACT_STEPS, 1):
             self.show_tab(self.window.TAB_OBJECTS_POINTS)
@@ -653,11 +650,8 @@ class Session:
         objects_group = self.control("obj_name_edit").parentWidget()
         self.save(self.ui._tab_widget, "objects-second-object", down_to=objects_group)
 
-        self.control("define_box_radio").setChecked(True)
-        self.pump(0.2)
         self.drag_image(*TONGUE_BOX)
         self.save_image_area("objects-tongue-box")
-        self.control("add_points_radio").setChecked(True)
         self.predict(tongue)
         self.save_image_area("objects-tongue")
 
