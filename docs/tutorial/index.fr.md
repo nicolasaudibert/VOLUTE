@@ -52,7 +52,8 @@ décrite dans
    comme faisant partie du conduit vocal, corriger la détection par des points, et
    retoucher à la main dans GIMP.
 6. [Suivre les objets dans la vidéo](tracking.fr.md) : propager les masques à toutes les
-   trames, vérifier le suivi, et le corriger là où il se trompe.
+   trames, vérifier le suivi, le corriger là où il se trompe, et naviguer entre les
+   trames annotées.
 7. [Affichage et points de référence](display.fr.md) : contours, centres de gravité et
    autres réglages d'affichage, puis repères pour mesurer des distances.
 8. [Exporter les résultats](export.fr.md) : les images avec leurs masques, les

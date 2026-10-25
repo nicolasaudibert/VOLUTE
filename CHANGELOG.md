@@ -4,6 +4,75 @@ Notable changes to VOLUTE. Versions are those reported by **Help › About** and
 by the macOS application bundle; `volute/__init__.py` holds the number everything
 else reads.
 
+## 0.9.5 — 2026-10-25
+
+### Added
+
+- An object annotated on several frames is propagated from each of them:
+  between two consecutive annotated frames, each mask is propagated over its
+  half by default, rather than the first mask alone over the whole video, which
+  let a confusion with a similar object run on past the frames annotated later.
+  A dialog asks for this junction — at the midpoint, forward only from the
+  first mask, or backward only from the second — with **Advanced Settings…**
+  to set it segment by segment; **Don't ask again** keeps the choice, which
+  **Settings › Performance and tools** shows and can make ask again.
+- An interrupted propagation can be resumed: the next **Propagate masks
+  through video** offers to resume where it stopped, which gives the same
+  masks as an uninterrupted run, or to start over; it states how many frames
+  were already processed and how many remain — pass by pass when objects
+  annotated on different frames need several. Resuming is the default
+  unless points, boxes, masks or objects changed in between, which the dialog
+  then says.
+- Frame navigation for the selected objects: **◀ Annotated frame** /
+  **Annotated frame ▶** in the **Objects** (or **Points**) tab step between
+  frames carrying points or a box; in the **Prediction** tab, **◀ Previous** /
+  **Next ▶** step between predicted or imported results, junction points of
+  the last propagation, or both, as **Navigate between** says. Project files
+  keep the frames predicted and the propagation layout (format 1.2; older
+  files still load).
+- **File › Export › Export Video with Masks…** (Ctrl/⌘ + Shift + V; with
+  tracked points, in point tracking mode) makes a video of the frames as the image export draws them,
+  with ffmpeg. The dialog starts from the video the frames were extracted
+  from — its frame rate, container, codec, bit rate and audio track, taken
+  from the time of the first frame — which VOLUTE now records beside the
+  frames at extraction (`volute_source.json`) and in the project file; any of
+  it can be changed, and without an original video the frame rate is set by
+  hand. MP4, MOV or MKV, in H.264, H.265 or Apple ProRes. The audio can come
+  from another file instead, placed at the start, in the middle, at the end
+  or at a given offset, and looped when shorter; the dialog states what is
+  cut off or left silent. Its format is chosen automatically for the
+  container — copied when possible — or among AAC, MP3, Opus, ALAC, FLAC and
+  PCM, with a bit rate and an optional resampling. The audio chosen is
+  remembered with the project.
+- In SAM2++ point tracking, a point placed on several frames is propagated
+  from each of them too, with the same junction choice and the same
+  resumption; a point added to an already-tracked frame now counts as
+  annotated.
+
+### Changed
+
+- Objects annotated on the same frames are propagated in one pass rather
+  than one pass each: SAM2 computed every object at each pass anyway, so a
+  propagation of several objects is up to as many times faster.
+- A propagation starting from an annotated frame first clears SAM2's
+  propagated memories around it, so that the mask set there outweighs what
+  the tracker followed before.
+- The backward pass no longer resets SAM2 and registers again every stored
+  mask, propagated ones included, as a conditioning frame: on a long video this
+  cost time and memory, and with several objects it left SAM2 holding only the
+  last one, which a later propagation then skipped without a word.
+
+### Fixed
+
+- Loading a project in SAM2++ point tracking mode ended with an error, after
+  the points were restored but before the lists were updated: the imported
+  points list, which this mode does not show, was refreshed all the same.
+- In SAM2++ point tracking, the message closing a propagation counted the
+  positions tracked as masks generated.
+- In **Extract Frames from Video…**, the highlighted button was the first
+  **Browse…** rather than **Extract**, so that Return opened a file dialog
+  instead of starting the extraction.
+
 ## 0.9.4 — 2026-10-23
 
 ### Added

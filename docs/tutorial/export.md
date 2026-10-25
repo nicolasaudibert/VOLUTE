@@ -21,6 +21,7 @@ file, so that each row can be traced back to its image.
 | Entry | Format | What the file holds |
 |---|---|---|
 | **Export images with masks** | JPEG images | each frame, with the masks drawn over it |
+| **Export Video with Masks…** | MP4, MOV, MKV | the same images, as a video, with the original video's audio track |
 | **Export mask coordinates** | JSON, CSV, Pickle | for each frame, every pixel of each mask |
 | **Export centroids** | XLSX, CSV, JSON | the pixel coordinates of the centre of gravity of each mask, frame by frame |
 | **Export closest mask points…** | XLSX, CSV, JSON | the distance in pixels from each mask to each reference point |
@@ -40,6 +41,40 @@ vertical axis pointing down.
 neither labels nor reference points. Here, frame 75:
 
 <img src="images/en/export-masked-image.webp" alt="Frame 75 exported with the vocal tract and the tongue drawn over it" width="450">
+
+## A video with the masks
+
+**Export Video with Masks…** turns these images into a video, with ffmpeg, the program
+that extracted the frames in step 2. Every frame is in it, those without a mask
+included, so that the video keeps the original's timing.
+
+<img src="images/en/export-video-dialog.webp" alt="The Export Video with Masks window, with the original video, the frame rate, the audio track, the output file, the container, the codec and the bit rate" width="760">
+
+If the frames were extracted by VOLUTE, the window knows the video they come from, and
+starts from its settings: the frame rate (in this case 50 frames per second), the format
+(here an H.264 MP4), its bit rate, and its audio track, taken from the time of the first
+frame extracted. The project file keeps the original video too. For frames from elsewhere,
+give the original video with **Browse…**, or set the frame rate alone.
+
+**Audio** also offers **Another file**, for an original video that is unavailable or
+silent, or to replace its audio track. The window then states the file's duration and
+the video's, and what the placement chosen cuts off or leaves silent: **Placement** puts
+the audio at the start, in the middle or at the end of the video, or at an offset given
+in seconds, negative to skip its beginning, and **Loop** repeats an audio shorter than
+the video. **None** gives a silent video. The choice is taken up at the next export, and
+saved in the project file.
+
+- **Container** and **Video codec** also offer MOV or MKV, and the H.265 or Apple ProRes
+  codecs.
+- **Audio format** is set to **Automatic** by default, which copies the audio track as it
+  is when the container takes it, and otherwise converts it to the format that suits
+  the container best, shown in brackets in the list. The list also offers the other
+  formats the container takes, with their bit rate, and **Audio sample rate** resamples
+  to 44.1 or 48 kHz.
+- **Video bit rate** sets the quality, except with ProRes, which has its own.
+
+Click **Export**: the video, `nancy_P1_S1_excerpt_frames_masks.mp4`, is written beside
+the frames folder.
 
 ## Distances to the reference points
 

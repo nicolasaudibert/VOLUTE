@@ -141,6 +141,11 @@ settings_coordinates_format	Mask coordinates format:
 settings_centroids_format	Centroids format:
 settings_image_quality	JPEG quality of exported images:
 settings_cache_size	Frames kept in memory (0 = unlimited):
+settings_junction_mode	Junction between annotated frames:	Settings label
+settings_ask_junction_mode	Ask for the junction at each propagation:	Settings label
+settings_junction_midpoint	At midpoint	Settings combo item
+settings_junction_forward	Forward only	Settings combo item
+settings_junction_backward	Backward only	Settings combo item
 settings_gimp_path	GIMP executable:
 settings_ffmpeg_path	ffmpeg executable:
 settings_debug_enabled	Verbose debug output:
@@ -206,6 +211,7 @@ confirm_remove_object	Are you sure you want to remove object {0}?	Confirmation m
 prediction_successful	Prediction successful for {0} object(s) on image {1}.	Success message with placeholders
 no_masks_generated	No masks could be generated.	Warning message
 propagation_successful	Bidirectional propagation successful: {0} masks generated for {1} objects.	Success message with placeholders
+point_propagation_successful	Bidirectional propagation successful: {0} point positions tracked for {1} points.	Success message with placeholders (positions, points), point tracking mode
 images_exported	{0} images exported successfully in {1}	Success message with placeholders
 coordinates_exported	Mask coordinates exported successfully: {0} masks.	Success message with placeholder
 centroids_exported	Centroids exported successfully ({0} centroids).	Success message with placeholder
@@ -230,6 +236,7 @@ filter_xcf	GIMP Files
 filter_image	Image Files
 filter_mask	Mask Files
 filter_video	Video Files
+filter_audio	Audio Files	File dialog filter
 filter_all	All Files
 
 # Project data management
@@ -443,6 +450,18 @@ ref_point_prev_frame_btn	◀ Previous defined frame	Button text
 ref_point_next_frame_btn	Next defined frame ▶	Button text
 ref_point_defined_frame_prev_btn	◀ Defined frame	Button text (simple mode)
 ref_point_defined_frame_next_btn	Defined frame ▶	Button text (simple mode)
+annotated_frames_nav	Annotated frames	Group box title
+annotated_frame_prev_btn	◀ Annotated frame	Button text
+annotated_frame_next_btn	Annotated frame ▶	Button text
+result_nav_label	Navigate between:	Label
+result_nav_masks	Predicted or imported masks	Combo item
+result_nav_points	Predicted points	Combo item (point tracking mode)
+result_nav_junctions	Junction points	Combo item
+result_nav_masks_junctions	Both	Combo item
+result_nav_points_junctions	Both	Combo item (point tracking mode)
+result_nav_prev_btn	◀ Previous	Button text
+result_nav_next_btn	Next ▶	Button text
+result_nav_outdated_tooltip	Junctions of the last propagation: the annotated frames have changed since, until the next propagation.	Tooltip
 ref_point_extrapolation_label	Extrapolation:	Label
 ref_point_extrapolation_extrapolate	Extrapolate	Combo item
 ref_point_extrapolation_undefined	Undefined	Combo item
@@ -495,6 +514,76 @@ clear_point	Clear point	Button text (SAM2++ point tracking mode)
 predict_points	Predict points on current frame	Button text (SAM2++ point tracking mode)
 propagate_points	Propagate points through video	Button text (SAM2++ point tracking mode)
 export_images_with_tracked_points	Export images with tracked points	Menu item (SAM2++ point tracking mode)
+video_export_menu	Export Video with Masks…	Menu item text
+video_export_menu_points	Export Video with Tracked Points…	Menu item text (point tracking mode)
+video_export_title	Export Video with Masks	Dialog title
+video_export_title_points	Export Video with Tracked Points	Dialog title (point tracking mode)
+video_export_source	Original video:	Label
+video_export_no_source	Original video unknown: give it to take its frame rate, format and audio, or set the frame rate below.	Dialog info text
+video_export_source_missing	File not found: give the original video again, or set the frame rate below.	Dialog info text
+video_export_info	Duration {0} s, {1} frames/s, {2}, {3}; {4}	Dialog info text with placeholders (duration, frame rate, size, video codec, audio description)
+video_export_info_audio	audio {0} at {1} Hz	Inserted in video_export_info with placeholders (audio codec, sample rate)
+video_export_info_no_audio	no audio	Inserted in video_export_info
+video_export_fps	Frame rate (frames/s):	Label
+video_export_audio_label	Audio:	Label
+video_export_audio_source	Original video's track	Radio button
+video_export_audio_file	Another file	Radio button
+video_export_audio_none	None	Radio button
+video_export_audio_file_label	Audio file:	Label
+video_export_select_audio	Choose the Audio File	File dialog title
+video_export_audio_unreadable	Unreadable file: {0}	Dialog info text with placeholder
+video_export_audio_missing	File not found.	Dialog info text
+video_export_audio_duration_unknown	Audio duration unknown: it will be cut at the end of the video.	Dialog info text
+video_export_audio_durations	Audio {0} s, video {1} s.	Dialog info text with placeholders (audio and video durations)
+video_export_audio_looped	The audio is looped.	Dialog info text
+video_export_audio_then	As placed: {0}.	Dialog info text with placeholder (what is cut, left silent)
+video_export_audio_cut	{0} s of audio cut	Inserted in video_export_audio_then with placeholder
+video_export_audio_silence	{0} s of silence	Inserted in video_export_audio_then with placeholder
+video_export_placement	Placement:	Label
+video_export_place_start	At the start	Combo item
+video_export_place_middle	In the middle	Combo item
+video_export_place_end	At the end	Combo item
+video_export_place_offset	Custom offset	Combo item
+video_export_offset	Offset (s):	Label
+video_export_offset_tooltip	Time of the video at which the audio starts: positive, it starts later; negative, its beginning is skipped.	Tooltip
+video_export_loop	Loop	Checkbox text
+video_export_audio_format	Audio format:	Label
+video_export_audio_bitrate	Bit rate:	Label
+video_export_sample_rate	Audio sample rate:	Label
+video_export_rate_original	Original	Combo item
+video_export_rate_44100	44.1 kHz	Combo item
+video_export_rate_48000	48 kHz	Combo item
+video_export_audio_auto_copy	Automatic (copied as it is)	Combo item
+video_export_audio_auto	Automatic ({0})	Combo item with placeholder (audio format)
+video_export_audio_auto_plain	Automatic	Combo item
+video_export_audio_aac	AAC	Combo item
+video_export_audio_mp3	MP3	Combo item
+video_export_audio_opus	Opus	Combo item
+video_export_audio_alac	ALAC (lossless)	Combo item
+video_export_audio_flac	FLAC (lossless)	Combo item
+video_export_audio_pcm16	PCM 16-bit	Combo item
+video_export_audio_pcm24	PCM 24-bit	Combo item
+video_export_audio_start	Start in the original video (s):	Label
+video_export_output	Output file:	Label
+video_export_select_output	Save the Video As	File dialog title
+video_export_container	Container:	Label
+video_export_container_mp4	MP4	Combo item
+video_export_container_mov	QuickTime (MOV)	Combo item
+video_export_container_mkv	Matroska (MKV)	Combo item
+video_export_codec	Video codec:	Label
+video_export_codec_h264	H.264	Combo item
+video_export_codec_h265	H.265 (HEVC)	Combo item
+video_export_codec_prores	Apple ProRes 422	Combo item
+video_export_bitrate	Video bit rate:	Label
+video_export_preview	{0} frames, {1} s of video.	Dialog info text with placeholders (frames, duration)
+video_export_export	Export	Button text
+video_export_no_output	Choose the output file.	Warning message
+video_export_output_folder_missing	The folder {0} does not exist.	Warning message with placeholder
+video_export_overwrite	{0} already exists. Replace it?	Confirmation message with placeholder
+video_export_progress	Encoding the video: frame {0} of {1}	Progress label with placeholders
+video_export_cancelled	Video export cancelled: no file was written.	Info message
+video_export_failed	The video could not be exported:\n{0}	Error message with placeholder
+video_export_done	Video exported: {0}	Success message with placeholder
 export_closest_tracked_points	Export closest tracked point distances…	Menu item (SAM2++ point tracking mode)
 closest_tracked_points_exported	Tracked point distances exported ({0} rows).	Success message with placeholder
 mode_mask	Mask mode	Window title suffix (SAM2++ mask mode)
@@ -543,6 +632,36 @@ mask_color_mapping_title	Map Colors to Objects	Dialog title
 mask_color_mapping_hint	Assign each detected color to an object:	Dialog hint label
 mask_color_mapping_new_object	Create new object	Combo item
 no_mask_on_frame_to_repropagate	No mask on the current frame for this object.	Warning message
+resume_propagation_title	Resume Propagation	Dialog title
+resume_propagation_text	The last propagation was interrupted at frame {0} ({1}, {2}).	Dialog text with placeholders (frame number, object, direction)
+resume_propagation_progress	{0} frame(s) already processed, {1} still to process.	Dialog informative text with placeholders (frames processed, frames left)
+resume_propagation_passes	{0} frame(s) already processed, {1} still to process, in {2} passes (one per group annotated on the same frames):	Dialog informative text with placeholders (frames processed, frames left, passes), followed by one line per pass
+resume_propagation_passes_many	{0} frame(s) already processed, {1} still to process, in {2} passes (one per group annotated on the same frames).	Dialog informative text with placeholders (frames processed, frames left, passes)
+resume_pass_done	• {0}: done ({1}/{2})	Pass line with placeholders (objects, frames done, frame total)
+resume_pass_running	• {0}: in progress ({1}/{2})	Pass line with placeholders (objects, frames done, frame total)
+resume_pass_pending	• {0}: to do ({1}/{2})	Pass line with placeholders (objects, frames done, frame total)
+junction_mode_hint_points	These points are placed on several frames:\n{0}\n\nBetween two of these frames:	Dialog text with placeholder (list of points and frames)
+junction_column_point	Point	Column header
+resume_propagation_unchanged	Nothing has changed since: resuming gives the same results as an uninterrupted propagation.	Dialog informative text
+resume_propagation_modified	Points, boxes, masks or objects have changed since: resuming would keep what was propagated before the change.	Dialog informative text
+resume_propagation_resume	Resume	Button text
+resume_propagation_restart	Start Over	Button text
+direction_forward	forward	Propagation direction, inserted in a sentence
+direction_backward	backward	Propagation direction, inserted in a sentence
+junction_mode_title	Several Annotated Frames	Dialog title
+junction_mode_hint	These objects have masks on several frames:\n{0}\n\nBetween two of these frames:	Dialog text with placeholder (list of objects and frames)
+junction_mode_midpoint	Junction at midpoint (each annotated frame propagated over its half)	Radio button and combo item
+junction_mode_forward	Forward only, from the first annotated frame	Radio button and combo item
+junction_mode_backward	Backward only, from the second annotated frame	Radio button and combo item
+junction_mode_advanced	Advanced Settings…	Button text
+junction_mode_overrides	{0} segment(s) set individually	Label with placeholder (count)
+junction_mode_dont_ask	Don't ask again (can be changed in Settings)	Checkbox text
+junction_advanced_title	Junction per Segment	Dialog title
+junction_advanced_hint	Segments left on the global choice follow the option chosen in the previous dialog.	Dialog hint label
+junction_column_object	Object	Column header
+junction_column_frames	Frames	Column header
+junction_column_mode	Junction	Column header
+junction_mode_global	As the global choice	Combo item
 
 # GIMP export
 gimp_export_frame	Export Frame for Editing…	Menu item text

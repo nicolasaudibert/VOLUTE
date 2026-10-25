@@ -65,6 +65,18 @@ performance:
                          # (0 = unlimited; increase if propagation is slow)
 
 # =============================================================================
+# Mask Propagation (ACTIVE)
+# =============================================================================
+# When an object has masks on several frames, how the frames between two
+# consecutive ones are shared out
+propagation:
+  junction_mode: "midpoint"    # "midpoint": each mask is propagated over its half
+                               # "forward":  the earlier mask only, forward
+                               # "backward": the later mask only, backward
+  ask_junction_mode: true      # Ask at each such propagation (false applies
+                               # junction_mode without asking)
+
+# =============================================================================
 # External Programs (ACTIVE)
 # =============================================================================
 # Executable paths, needed only for an installation the automatic search does

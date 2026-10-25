@@ -141,6 +141,11 @@ settings_coordinates_format	Format des coordonnées de masques :	Settings label
 settings_centroids_format	Format des centres de gravité :	Settings label
 settings_image_quality	Qualité JPEG des images exportées :	Settings label
 settings_cache_size	Images gardées en mémoire (0 = illimité) :	Settings label
+settings_junction_mode	Jonction entre trames annotées :	Settings label
+settings_ask_junction_mode	Demander la jonction à chaque propagation :	Settings label
+settings_junction_midpoint	Au milieu	Settings combo item
+settings_junction_forward	Avant seulement	Settings combo item
+settings_junction_backward	Arrière seulement	Settings combo item
 settings_gimp_path	Exécutable GIMP :	Settings label
 settings_ffmpeg_path	Exécutable ffmpeg :	Settings label
 settings_debug_enabled	Sortie de débogage détaillée :	Settings label
@@ -206,6 +211,7 @@ confirm_remove_object	Êtes-vous sûr de vouloir supprimer l'objet {0} ?	Confirm
 prediction_successful	Prédiction réussie pour {0} objet(s) sur l'image {1}.	Success message with placeholders
 no_masks_generated	Aucun masque n'a pu être généré.	Warning message
 propagation_successful	Propagation bidirectionnelle réussie : {0} masques générés pour {1} objets.	Success message with placeholders
+point_propagation_successful	Propagation bidirectionnelle réussie : {0} positions suivies pour {1} points.	Success message with placeholders (positions, points), point tracking mode
 images_exported	{0} images exportées avec succès dans {1}	Success message with placeholders
 coordinates_exported	Coordonnées des masques exportées avec succès : {0} masques.	Success message with placeholder
 centroids_exported	Centres de gravité exportés avec succès ({0} centres).	Success message with placeholder
@@ -230,6 +236,7 @@ filter_xcf	Fichiers GIMP	File dialog filter
 filter_image	Fichiers image	File dialog filter
 filter_mask	Fichiers de masque	File dialog filter
 filter_video	Fichiers vidéo	File dialog filter
+filter_audio	Fichiers audio	File dialog filter
 filter_all	Tous les fichiers	File dialog filter
 
 # Project data management
@@ -443,6 +450,18 @@ ref_point_prev_frame_btn	◀ Trame précédente	Button text
 ref_point_next_frame_btn	Trame suivante ▶	Button text
 ref_point_defined_frame_prev_btn	◀ Trame définie	Button text (simple mode)
 ref_point_defined_frame_next_btn	Trame définie ▶	Button text (simple mode)
+annotated_frames_nav	Trames annotées	Group box title
+annotated_frame_prev_btn	◀ Trame annotée	Button text
+annotated_frame_next_btn	Trame annotée ▶	Button text
+result_nav_label	Naviguer entre :	Label
+result_nav_masks	Masques prédits ou importés	Combo item
+result_nav_points	Points prédits	Combo item (point tracking mode)
+result_nav_junctions	Points de jonction	Combo item
+result_nav_masks_junctions	Les deux	Combo item
+result_nav_points_junctions	Les deux	Combo item (point tracking mode)
+result_nav_prev_btn	◀ Précédente	Button text
+result_nav_next_btn	Suivante ▶	Button text
+result_nav_outdated_tooltip	Jonctions de la dernière propagation : les trames annotées ont changé depuis, jusqu'à la prochaine propagation.	Tooltip
 ref_point_extrapolation_label	Extrapolation :	Label
 ref_point_extrapolation_extrapolate	Extrapoler	Combo item
 ref_point_extrapolation_undefined	Indéfini	Combo item
@@ -495,6 +514,76 @@ clear_point	Effacer le point	Button text (SAM2++ point tracking mode)
 predict_points	Prédire les points sur la trame courante	Button text (SAM2++ point tracking mode)
 propagate_points	Propager les points dans la vidéo	Button text (SAM2++ point tracking mode)
 export_images_with_tracked_points	Exporter les images avec les points suivis	Menu item (SAM2++ point tracking mode)
+video_export_menu	Exporter une vidéo avec masques…	Menu item text
+video_export_menu_points	Exporter une vidéo avec points suivis…	Menu item text (point tracking mode)
+video_export_title	Exporter une vidéo avec masques	Dialog title
+video_export_title_points	Exporter une vidéo avec points suivis	Dialog title (point tracking mode)
+video_export_source	Vidéo d'origine :	Label
+video_export_no_source	Vidéo d'origine inconnue : indiquez-la pour reprendre sa fréquence d'images, son format et son audio, ou réglez la fréquence ci-dessous.	Dialog info text
+video_export_source_missing	Fichier introuvable : indiquez de nouveau la vidéo d'origine, ou réglez la fréquence ci-dessous.	Dialog info text
+video_export_info	Durée {0} s, {1} images/s, {2}, {3} ; {4}	Dialog info text with placeholders (duration, frame rate, size, video codec, audio description)
+video_export_info_audio	audio {0} à {1} Hz	Inserted in video_export_info with placeholders (audio codec, sample rate)
+video_export_info_no_audio	sans audio	Inserted in video_export_info
+video_export_fps	Fréquence d'images (images/s) :	Label
+video_export_audio_label	Audio :	Label
+video_export_audio_source	Piste de la vidéo d'origine	Radio button
+video_export_audio_file	Autre fichier	Radio button
+video_export_audio_none	Aucun	Radio button
+video_export_audio_file_label	Fichier audio :	Label
+video_export_select_audio	Choisir le fichier audio	File dialog title
+video_export_audio_unreadable	Fichier illisible : {0}	Dialog info text with placeholder
+video_export_audio_missing	Fichier introuvable.	Dialog info text
+video_export_audio_duration_unknown	Durée de l'audio inconnue : il sera coupé à la fin de la vidéo.	Dialog info text
+video_export_audio_durations	Audio {0} s, vidéo {1} s.	Dialog info text with placeholders (audio and video durations)
+video_export_audio_looped	L'audio est joué en boucle.	Dialog info text
+video_export_audio_then	Ainsi placé : {0}.	Dialog info text with placeholder (what is cut, left silent)
+video_export_audio_cut	{0} s d'audio coupées	Inserted in video_export_audio_then with placeholder
+video_export_audio_silence	{0} s de silence	Inserted in video_export_audio_then with placeholder
+video_export_placement	Placement :	Label
+video_export_place_start	Au début	Combo item
+video_export_place_middle	Au milieu	Combo item
+video_export_place_end	À la fin	Combo item
+video_export_place_offset	Décalage personnalisé	Combo item
+video_export_offset	Décalage (s) :	Label
+video_export_offset_tooltip	Instant de la vidéo où l'audio commence : positif, il commence plus tard ; négatif, son début est sauté.	Tooltip
+video_export_loop	Jouer en boucle	Checkbox text
+video_export_audio_format	Format audio :	Label
+video_export_audio_bitrate	Débit :	Label
+video_export_sample_rate	Fréquence d'échantillonnage :	Label
+video_export_rate_original	D'origine	Combo item
+video_export_rate_44100	44,1 kHz	Combo item
+video_export_rate_48000	48 kHz	Combo item
+video_export_audio_auto_copy	Automatique (copie telle quelle)	Combo item
+video_export_audio_auto	Automatique ({0})	Combo item with placeholder (audio format)
+video_export_audio_auto_plain	Automatique	Combo item
+video_export_audio_aac	AAC	Combo item
+video_export_audio_mp3	MP3	Combo item
+video_export_audio_opus	Opus	Combo item
+video_export_audio_alac	ALAC (sans perte)	Combo item
+video_export_audio_flac	FLAC (sans perte)	Combo item
+video_export_audio_pcm16	PCM 16 bits	Combo item
+video_export_audio_pcm24	PCM 24 bits	Combo item
+video_export_audio_start	Début dans la vidéo d'origine (s) :	Label
+video_export_output	Fichier de sortie :	Label
+video_export_select_output	Enregistrer la vidéo sous	File dialog title
+video_export_container	Conteneur :	Label
+video_export_container_mp4	MP4	Combo item
+video_export_container_mov	QuickTime (MOV)	Combo item
+video_export_container_mkv	Matroska (MKV)	Combo item
+video_export_codec	Codec vidéo :	Label
+video_export_codec_h264	H.264	Combo item
+video_export_codec_h265	H.265 (HEVC)	Combo item
+video_export_codec_prores	Apple ProRes 422	Combo item
+video_export_bitrate	Débit vidéo :	Label
+video_export_preview	{0} trames, {1} s de vidéo.	Dialog info text with placeholders (frames, duration)
+video_export_export	Exporter	Button text
+video_export_no_output	Choisissez le fichier de sortie.	Warning message
+video_export_output_folder_missing	Le dossier {0} n'existe pas.	Warning message with placeholder
+video_export_overwrite	{0} existe déjà. Le remplacer ?	Confirmation message with placeholder
+video_export_progress	Encodage de la vidéo : trame {0} sur {1}	Progress label with placeholders
+video_export_cancelled	Exportation de la vidéo annulée : aucun fichier n'a été écrit.	Info message
+video_export_failed	La vidéo n'a pas pu être exportée :\n{0}	Error message with placeholder
+video_export_done	Vidéo exportée : {0}	Success message with placeholder
 export_closest_tracked_points	Exporter les distances aux points de référence…	Menu item (SAM2++ point tracking mode)
 closest_tracked_points_exported	Distances des points suivis exportées ({0} lignes).	Success message with placeholder
 mode_mask	Mode masque	Window title suffix (SAM2++ mask mode)
@@ -543,6 +632,36 @@ mask_color_mapping_title	Associer les couleurs aux objets	Dialog title
 mask_color_mapping_hint	Associez chaque couleur détectée à un objet :	Dialog hint label
 mask_color_mapping_new_object	Créer un nouvel objet	Combo item
 no_mask_on_frame_to_repropagate	Aucun masque sur la trame courante pour cet objet.	Warning message
+resume_propagation_title	Reprendre la propagation	Dialog title
+resume_propagation_text	La dernière propagation a été interrompue à la trame {0} ({1}, {2}).	Dialog text with placeholders (frame number, object, direction)
+resume_propagation_progress	{0} trame(s) déjà traitée(s), {1} encore à traiter.	Dialog informative text with placeholders (frames processed, frames left)
+resume_propagation_passes	{0} trame(s) déjà traitée(s), {1} encore à traiter, en {2} passes (une par groupe annoté sur les mêmes trames) :	Dialog informative text with placeholders (frames processed, frames left, passes), followed by one line per pass
+resume_propagation_passes_many	{0} trame(s) déjà traitée(s), {1} encore à traiter, en {2} passes (une par groupe annoté sur les mêmes trames).	Dialog informative text with placeholders (frames processed, frames left, passes)
+resume_pass_done	• {0} : terminée ({1}/{2})	Pass line with placeholders (objects, frames done, frame total)
+resume_pass_running	• {0} : en cours ({1}/{2})	Pass line with placeholders (objects, frames done, frame total)
+resume_pass_pending	• {0} : à faire ({1}/{2})	Pass line with placeholders (objects, frames done, frame total)
+junction_mode_hint_points	Ces points sont placés sur plusieurs trames :\n{0}\n\nEntre deux de ces trames :	Dialog text with placeholder (list of points and frames)
+junction_column_point	Point	Column header
+resume_propagation_unchanged	Rien n'a changé depuis : la reprise donne les mêmes résultats qu'une propagation menée sans interruption.	Dialog informative text
+resume_propagation_modified	Des points, boîtes, masques ou objets ont changé depuis : la reprise conserverait ce qui a été propagé avant ce changement.	Dialog informative text
+resume_propagation_resume	Reprendre	Button text
+resume_propagation_restart	Tout recommencer	Button text
+direction_forward	sens avant	Propagation direction, inserted in a sentence
+direction_backward	sens arrière	Propagation direction, inserted in a sentence
+junction_mode_title	Plusieurs trames annotées	Dialog title
+junction_mode_hint	Ces objets ont des masques sur plusieurs trames :\n{0}\n\nEntre deux de ces trames :	Dialog text with placeholder (list of objects and frames)
+junction_mode_midpoint	Jonction au milieu (chaque trame annotée propagée sur sa moitié)	Radio button and combo item
+junction_mode_forward	Propagation avant seulement, depuis la première trame annotée	Radio button and combo item
+junction_mode_backward	Propagation arrière seulement, depuis la seconde trame annotée	Radio button and combo item
+junction_mode_advanced	Paramétrage avancé…	Button text
+junction_mode_overrides	{0} segment(s) réglé(s) individuellement	Label with placeholder (count)
+junction_mode_dont_ask	Ne plus demander (modifiable dans les réglages)	Checkbox text
+junction_advanced_title	Jonction par segment	Dialog title
+junction_advanced_hint	Les segments laissés sur le choix global suivent l'option retenue dans le dialogue précédent.	Dialog hint label
+junction_column_object	Objet	Column header
+junction_column_frames	Trames	Column header
+junction_column_mode	Jonction	Column header
+junction_mode_global	Comme le choix global	Combo item
 
 # GIMP export
 gimp_export_frame	Exporter la trame pour édition…	Menu item text

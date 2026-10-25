@@ -132,6 +132,12 @@ In the reference documentation, on GitHub, the
 [Getting started](https://github.com/nicolasaudibert/VOLUTE/blob/main/README.md#getting-started)
 section of the README sums up the whole sequence.
 
+If the tracking mistakes the object for a neighbour that looks like it over a whole part
+of the video, outline the object on a frame further on as well, then propagate: the
+propagation then starts from each of the annotated frames, as
+[Several annotated frames](tutorial/tracking.md#several-annotated-frames) shows in the
+tutorial.
+
 This correction is the one to try first. Should it not give a satisfactory result, the
 masks can be edited by hand: see
 [Can I edit a mask by hand?](#can-i-edit-a-mask-by-hand)
@@ -177,6 +183,15 @@ in step 5. In the reference documentation, on GitHub:
 - Split a very long sequence into several shorter ones.
 
 Without a suitable graphics card, propagation is slow whatever the settings.
+
+### Can a propagation be interrupted and resumed later?
+
+Yes. **Cancel**, in the progress window, stops the propagation and keeps the masks already
+computed. The next click on **Propagate masks through video** offers to resume where it
+stopped, which gives the same masks as a propagation run in one go, or to start over.
+Resuming is only possible within the same session: after VOLUTE is closed or a project is
+loaded, propagation starts again from the beginning. In the tutorial:
+[Interrupting and resuming the propagation](tutorial/tracking.md#interrupting-and-resuming-the-propagation).
 
 ### The masks have small holes, or a message mentions "Skipping the post-processing step"
 

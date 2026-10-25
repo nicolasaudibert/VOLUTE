@@ -129,6 +129,9 @@ class SAM2Backend:
         self.device           = None
         self.video_predictor  = None
         self.inference_state  = None
+        # Bumped whenever the inference state gains or changes a prompt, so
+        # that an interrupted propagation can tell whether it may resume as is
+        self.conditioning_revision = 0
         # Why the last initialize() failed, for the error the user sees
         self.init_error       = None
 
@@ -225,10 +228,10 @@ class SAM2Backend:
             # A frame corrected after tracking becomes a conditioning frame, as
             # in SAM2's own interactive training configurations. Otherwise SAM2
             # files the correction apart, and a propagation starting from that
-            # frame returns its former mask: "Re-propagate from this frame"
-            # would undo the correction instead of passing it on.
-            if not (self.is_sam2plus and self.sam2plus_task == 'point'):
-                self.video_predictor.add_all_frames_to_correct_as_cond = True
+            # frame returns its former mask or point: "Re-propagate from this
+            # frame" would undo the correction instead of passing it on, and a
+            # propagation would not count the frame as annotated.
+            self.video_predictor.add_all_frames_to_correct_as_cond = True
 
             if self.debug_mode:
                 print(f"{self._model_label()} video predictor initialized successfully")
@@ -328,6 +331,7 @@ class SAM2Backend:
                     video_path=folder_for_sam2,
                     async_loading_frames=True,
                 )
+                self.conditioning_revision += 1
             finally:
                 _sam2_misc.AsyncVideoFrameLoader = _orig_cls
 
@@ -386,6 +390,7 @@ class SAM2Backend:
                     labels=labels,
                     box=box,
                 )
+                self.conditioning_revision += 1
                 # SAM2/MedSAM2: (frame_idx, obj_ids, mask_logits)
                 # SAM2++ mask:  (frame_idx, obj_ids, mask_logits, box_xyxy, score_logits)
                 return result[1], result[2]
@@ -420,6 +425,7 @@ class SAM2Backend:
                     obj_id=obj_id,
                     mask=mask,
                 )
+                self.conditioning_revision += 1
                 # SAM2/MedSAM2: (frame_idx, obj_ids, mask_logits)
                 # SAM2++ mask:  (frame_idx, obj_ids, mask_logits, box_xyxy, score_logits)
                 return result[1], result[2]
@@ -429,6 +435,38 @@ class SAM2Backend:
                 import traceback
                 traceback.print_exc()
             raise RuntimeError(f"Error adding mask: {e}")
+
+    def get_conditioning_frames(self, obj_id):
+        """Sorted frames on which SAM2 holds a prompt or mask for this object,
+        including those not yet consolidated by a propagation."""
+        state = self.inference_state
+        if not state:
+            return []
+        obj_idx = state.get("obj_id_to_idx", {}).get(obj_id)
+        if obj_idx is None:
+            return []
+        frames = set(state["output_dict_per_obj"][obj_idx]["cond_frame_outputs"])
+        frames |= set(state["temp_output_dict_per_obj"][obj_idx]["cond_frame_outputs"])
+        return sorted(frames)
+
+    def _clear_memory_around_start(self, start_frame_idx):
+        """Drop the propagated memories around the frame a propagation starts
+        from, for each object holding a prompt or mask there: what the tracker
+        followed before a mask the person set would otherwise outweigh that
+        mask on the frames after it. SAM2's clear_non_cond_mem_around_input
+        option does the same on every conditioning frame it reaches, but calls
+        a method its video predictor lacks."""
+        predictor = self.video_predictor
+        reach = predictor.memory_temporal_stride_for_eval * predictor.num_maskmem
+        state = self.inference_state
+        for obj_idx, obj_output_dict in state["output_dict_per_obj"].items():
+            temp_cond = state["temp_output_dict_per_obj"][obj_idx]["cond_frame_outputs"]
+            if (start_frame_idx not in obj_output_dict["cond_frame_outputs"]
+                    and start_frame_idx not in temp_cond):
+                continue
+            non_cond = obj_output_dict["non_cond_frame_outputs"]
+            for t in range(start_frame_idx - reach, start_frame_idx + reach + 1):
+                non_cond.pop(t, None)
 
     def propagate_masks(self, start_frame_idx, reverse=False, max_frame_num_to_track=None):
         """
@@ -450,6 +488,7 @@ class SAM2Backend:
                     direction = "backward" if reverse else "forward"
                     print(f"Starting {direction} propagation from frame {start_frame_idx}")
 
+                self._clear_memory_around_start(start_frame_idx)
                 for result in self.video_predictor.propagate_in_video(
                     self.inference_state,
                     start_frame_idx=start_frame_idx,
@@ -501,15 +540,17 @@ class SAM2Backend:
                 radius=radius,
                 sigma=sigma,
             )
+            self.conditioning_revision += 1
         # Unpack by index in case SAM2++ returns extra values
         return result[1], result[2]
 
-    def propagate_point_tracks(self, start_frame_idx, reverse=False):
+    def propagate_point_tracks(self, start_frame_idx, reverse=False, max_frame_num_to_track=None):
         """
         Propagate point tracks (SAM2++ point mode only).
 
         Yields (frame_idx, {obj_id: (x_px, y_px)}) for each frame.
         The position is extracted as the argmax of the Gaussian heatmap logit.
+        max_frame_num_to_track bounds the span as in propagate_masks.
         """
         if not self.inference_state:
             raise RuntimeError("Inference state not initialized")
@@ -523,9 +564,11 @@ class SAM2Backend:
                     print(f"Starting {direction} point-track propagation "
                           f"from frame {start_frame_idx}")
 
+                self._clear_memory_around_start(start_frame_idx)
                 for result in self.video_predictor.propagate_in_video(
                     self.inference_state,
                     start_frame_idx=start_frame_idx,
+                    max_frame_num_to_track=max_frame_num_to_track,
                     reverse=reverse,
                 ):
                     frame_idx    = result[0]

@@ -131,6 +131,8 @@ class UIManager:
                 ("export_images_with_tracked_points",
                  self.main_window.export_images_with_tracked_points,
                  Qt.CTRL | Qt.SHIFT | Qt.Key_I),
+                ("video_export_menu_points", self.main_window.export_video,
+                 Qt.CTRL | Qt.SHIFT | Qt.Key_V),
                 ("export_tracked_points",
                  self.main_window.export_tracked_points,
                  Qt.CTRL | Qt.SHIFT | Qt.Key_P),
@@ -141,6 +143,7 @@ class UIManager:
         else:
             export_items = [
                 ("export_images",       self.main_window.export_masked_images,      Qt.CTRL | Qt.SHIFT | Qt.Key_I),
+                ("video_export_menu",   self.main_window.export_video,              Qt.CTRL | Qt.SHIFT | Qt.Key_V),
                 ("export_coordinates",  self.main_window.export_mask_coordinates,   Qt.CTRL | Qt.SHIFT | Qt.Key_M),
                 ("export_centroids",    self.main_window.export_centroids,          Qt.CTRL | Qt.SHIFT | Qt.Key_T),
                 ("export_closest_points", self.main_window.export_closest_mask_points, Qt.CTRL | Qt.SHIFT | Qt.Key_K),
@@ -367,6 +370,7 @@ class UIManager:
         if points_panel is not None:
             t1.addWidget(points_panel)
         t1.addWidget(self.object_controls.create_objects_panel())
+        t1.addWidget(self.control_panels.create_annotation_navigation_panel())
         t1.addWidget(self.object_controls.create_object_config_panel())
         t1.addStretch()
         tab.addTab(tab1, self.localization.get_text(
@@ -492,6 +496,10 @@ class UIManager:
             'predict_current_btn':          'predict_points' if is_pt else 'predict_current',
             'propagate_btn':                'propagate_points' if is_pt else 'propagate_masks',
             'repropagate_btn':              'repropagate_from_frame',
+            'annotated_prev_btn':           'annotated_frame_prev_btn',
+            'annotated_next_btn':           'annotated_frame_next_btn',
+            'result_prev_btn':              'result_nav_prev_btn',
+            'result_next_btn':              'result_nav_next_btn',
             'prev_btn':                     'previous',
             'next_btn':                     'next',
             'add_ref_point_btn':            'add_ref_point_btn',
@@ -530,7 +538,14 @@ class UIManager:
 
         # Combo items are not covered by the QLabel/QGroupBox reverse mapping
         # below, so they are relabeled explicitly
-        from .ui_components.control_panels import BOX_CLIPPING_MODE_ITEMS
+        from .ui_components.control_panels import BOX_CLIPPING_MODE_ITEMS, RESULT_NAV_ITEMS
+        combo = self.controls.get('result_nav_combo')
+        if combo:
+            combo.blockSignals(True)
+            for index, (_, mask_key, point_key) in enumerate(RESULT_NAV_ITEMS):
+                combo.setItemText(index, self.localization.get_text(point_key if is_pt else mask_key))
+            combo.blockSignals(False)
+        self.main_window._refresh_frame_navigation_state()
         from .ui_components.reference_point_controls import (
             REF_POINT_EXTRAPOLATION_ITEMS, REF_POINT_INTERPOLATION_ITEMS,
         )

@@ -86,6 +86,16 @@ class ObjectManager:
         # enabled state, cleared once that frame has been re-propagated from.
         self.object_corrected_frames = {}  # {obj_id: set(frame_idx)}
 
+        # Layout of the last mask propagation, per object: one entry per pair of
+        # consecutive conditioning frames, with how the span between them was
+        # shared out and the junction frame, the last one filled from 'start'.
+        self.object_propagation_segments = {}  # {obj_id: [{'start', 'end', 'mode', 'junction'}]}
+
+        # Frames whose mask — or tracked point, in point mode — came from a
+        # prediction on that frame rather than a propagation; with the
+        # imported masks, the results the prediction tab navigates between.
+        self.object_predicted_frames = {}  # {obj_id: set(frame_idx)}
+
         # Global display settings
         self.show_centroids = False
         self.centroid_color = QColor(255, 255, 255)  # White by default
@@ -429,7 +439,8 @@ class ObjectManager:
             self.object_contours, self.object_contour_coverage,
             self.object_tracked_points, self.object_boxes,
             self.mask_imported_frames, self.mask_import_origin,
-            self.object_corrected_frames,
+            self.object_corrected_frames, self.object_propagation_segments,
+            self.object_predicted_frames,
         ):
             d.pop(obj_id, None)
 
@@ -465,6 +476,54 @@ class ObjectManager:
             if frame_idx in frames:
                 objects.add(obj_id)
         return sorted(objects)
+
+    def get_prompt_frames(self, obj_id):
+        """Frames carrying points or a box for this object."""
+        frames = {f for f, pts in self.object_points.get(obj_id, {}).items()
+                  if pts.get('positive') or pts.get('negative')}
+        frames |= set(self.object_boxes.get(obj_id, {}))
+        return sorted(frames)
+
+    def get_annotated_frames(self, obj_id):
+        """Frames whose mask the person set for this object, rather than a
+        propagation: frames carrying points or a box, and imported masks."""
+        return sorted(set(self.get_prompt_frames(obj_id))
+                      | self.mask_import_origin.get(obj_id, set()))
+
+    def get_result_origin_frames(self, obj_id):
+        """Frames whose stored mask — or tracked point, in point mode — came
+        from a prediction or an import rather than a propagation. In point mode
+        a seed point is always predicted, so a frame carrying both a seed and a
+        tracked point counts too, whether or not this session predicted it."""
+        results = (self.object_tracked_points if self.point_mode
+                   else self.object_masks).get(obj_id, {})
+        frames = self.object_predicted_frames.get(obj_id, set()) \
+            | self.mask_import_origin.get(obj_id, set())
+        if self.point_mode:
+            frames = frames | set(self.get_prompt_frames(obj_id))
+        return sorted(f for f in frames if f in results)
+
+    def get_junction_frames(self, obj_id):
+        """Junction frames of the object's last propagation, each the last
+        frame filled from the earlier of its two annotated frames."""
+        return sorted(seg['junction'] for seg in self.object_propagation_segments.get(obj_id, []))
+
+    def junctions_outdated(self, obj_id):
+        """Whether the object's predicted or imported frames no longer match
+        those its last propagation was laid out from."""
+        segments = self.object_propagation_segments.get(obj_id)
+        if not segments:
+            return False
+        laid_out = {seg['start'] for seg in segments} | {seg['end'] for seg in segments}
+        return laid_out != set(self.get_result_origin_frames(obj_id))
+
+    @staticmethod
+    def adjacent_frame(frames, current, forward):
+        """The nearest of `frames` after `current` (forward) or before it,
+        or None."""
+        if forward:
+            return min((f for f in frames if f > current), default=None)
+        return max((f for f in frames if f < current), default=None)
 
     def get_objects_with_masks(self):
         """Get objects that have at least one mask defined"""
@@ -820,6 +879,8 @@ class ObjectManager:
             'masks': copy.deepcopy(self.object_masks.get(obj_id, {})),
             'boxes': copy.deepcopy(self.object_boxes.get(obj_id, {})),
             'import_origin': set(self.mask_import_origin.get(obj_id, set())),
+            'predicted_frames': set(self.object_predicted_frames.get(obj_id, set())),
+            'segments': copy.deepcopy(self.object_propagation_segments.get(obj_id, [])),
             'colors': {k: QColor(v) for k, v in self.object_colors.get(obj_id, {}).items()},
             'markers': copy.deepcopy(self.object_markers.get(obj_id, {})),
             'name': self.object_names.get(obj_id),
@@ -832,6 +893,8 @@ class ObjectManager:
         self.object_masks[obj_id] = snapshot['masks'] or {}
         self.object_boxes[obj_id] = snapshot['boxes'] or {}
         self.mask_import_origin[obj_id] = snapshot['import_origin'] or set()
+        self.object_predicted_frames[obj_id] = snapshot['predicted_frames'] or set()
+        self.object_propagation_segments[obj_id] = snapshot['segments'] or []
         self.object_colors[obj_id] = snapshot['colors']
         self.object_markers[obj_id] = snapshot['markers']
         self.object_names[obj_id] = snapshot['name']
@@ -847,7 +910,8 @@ class ObjectManager:
             self.object_contours, self.object_contour_coverage,
             self.object_tracked_points, self.object_boxes,
             self.mask_imported_frames, self.mask_import_origin,
-            self.object_corrected_frames,
+            self.object_corrected_frames, self.object_propagation_segments,
+            self.object_predicted_frames,
         ):
             d.clear()
 

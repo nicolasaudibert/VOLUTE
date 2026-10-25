@@ -19,10 +19,14 @@ from .file_utils import build_file_filter
 class ProjectStateManager:
     """Manages project data save/load operations"""
 
-    # 1.1 adds object_boxes, and the optional imported masks with their origin.
-    # Older files simply lack those keys and import unchanged.
-    PROJECT_VERSION = '1.1'
-    SUPPORTED_VERSIONS = ('1.0', '1.1')
+    # 1.1 adds object_boxes, and the optional imported masks with their origin;
+    # 1.2 the frames predicted per object and the layout of the last
+    # propagation, which the frame navigation steps between, and the video the
+    # frames came from and the audio chosen, which the video export starts
+    # from. Older files
+    # simply lack those keys and import unchanged.
+    PROJECT_VERSION = '1.2'
+    SUPPORTED_VERSIONS = ('1.0', '1.1', '1.2')
 
 
     def __init__(self, main_window):
@@ -188,6 +192,13 @@ class ProjectStateManager:
             self._import_imported_points(project_data.get('imported_point_data', {}))
             
             if success:
+                # A project's record of the source video takes over from the
+                # frame folder's own
+                if project_data.get('video_source'):
+                    self.main_window.video_source = dict(project_data['video_source'])
+                if project_data.get('export_audio'):
+                    self.main_window.export_audio = dict(project_data['export_audio'])
+
                 # Recreate SAM2 points from imported data
                 self._recreate_sam2_points()
                 
@@ -247,6 +258,10 @@ class ProjectStateManager:
             'object_data': {},
             'reference_point_data': self._serialize_reference_points(),
             'imported_point_data': self._serialize_imported_points(),
+            # The video the frames came from, and the audio chosen, for the
+            # video export
+            'video_source': getattr(self.main_window, 'video_source', None),
+            'export_audio': getattr(self.main_window, 'export_audio', None),
         }
         
         try:
@@ -264,6 +279,12 @@ class ProjectStateManager:
             if tracked:
                 project_data['object_data']['object_tracked_points'] = tracked
             project_data['object_data']['object_boxes'] = self._serialize_object_boxes()
+            om = self.main_window.object_manager
+            project_data['object_data']['object_predicted_frames'] = {
+                oid: sorted(frames) for oid, frames in om.object_predicted_frames.items() if frames}
+            project_data['object_data']['object_propagation_segments'] = {
+                oid: [dict(seg) for seg in segments]
+                for oid, segments in om.object_propagation_segments.items() if segments}
 
             # Imported masks: the only masks a reload cannot recompute from prompts
             om = self.main_window.object_manager
@@ -463,7 +484,8 @@ class ProjectStateManager:
             om.object_contours, om.object_contour_coverage,
             om.object_tracked_points, om.object_boxes,
             om.mask_imported_frames, om.mask_import_origin,
-            om.object_corrected_frames,
+            om.object_corrected_frames, om.object_propagation_segments,
+            om.object_predicted_frames,
         ):
             d.clear()
 
@@ -556,6 +578,17 @@ class ProjectStateManager:
                 int(obj_id): {int(frame_idx): tuple(box) for frame_idx, box in frames.items()}
                 for obj_id, frames in object_data['object_boxes'].items()
             }
+
+        # Predicted frames and last propagation layout (absent before 1.2). The
+        # predicted masks themselves are not saved: their frames become
+        # navigable again once predicting or propagating regenerates them
+        om = self.main_window.object_manager
+        for obj_id, frames in object_data.get('object_predicted_frames', {}).items():
+            om.object_predicted_frames[int(obj_id)] = {int(f) for f in frames}
+        for obj_id, segments in object_data.get('object_propagation_segments', {}).items():
+            om.object_propagation_segments[int(obj_id)] = [
+                {key: (int(value) if key != 'mode' else value) for key, value in seg.items()}
+                for seg in segments]
 
         # Imported-mask origin: durable record, plus the transient conditioning
         # flag that makes the next prediction resend the mask to SAM2

@@ -11,7 +11,7 @@ independent of the objects, from which VOLUTE measures distances when exporting.
 In the **Prediction** tab, below the prediction buttons, are the settings that change
 what is drawn over the image.
 
-<img src="images/en/display-options.webp" alt="The Prediction tab, with the display settings below the prediction buttons" width="437">
+<img src="images/en/display-options.webp" alt="The Prediction tab, with the display settings below the prediction buttons" width="453">
 
 - **Background opacity** fades the image, to bring out the masks.
 - **Show labels** writes each object's name at the centre of its mask.
@@ -45,7 +45,7 @@ the tongue comes to the palate, for instance.
 3. Click **Add** again, name the point `Pharyngeal wall`, and click on the posterior wall
    of the pharynx, just behind the air of the pharyngeal cavity.
 
-<img src="images/en/display-reference-points-tab.webp" alt="The Ref. Points tab, with Hard palate and Pharyngeal wall in the list" width="437">
+<img src="images/en/display-reference-points-tab.webp" alt="The Ref. Points tab, with Hard palate and Pharyngeal wall in the list" width="453">
 
 With the **Ref. Points** tab open, a click on the image places the selected reference
 point, and only that: points of objects are added from the **Objects** tab.

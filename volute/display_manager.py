@@ -64,6 +64,8 @@ class DisplayManager:
             self.ui_manager.ref_point_controls.update_ref_point_ui()
         if hasattr(self.main_window, '_refresh_repropagate_button_state'):
             self.main_window._refresh_repropagate_button_state()
+        if hasattr(self.main_window, '_refresh_frame_navigation_state'):
+            self.main_window._refresh_frame_navigation_state()
         if hasattr(self.main_window, '_refresh_remove_box_button_state'):
             self.main_window._refresh_remove_box_button_state()
     

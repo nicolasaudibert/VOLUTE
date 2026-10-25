@@ -12,7 +12,7 @@ frame is called a **mask**.
 VOLUTE starts with one object, **Object 1**, in the **Objects** tab. In **Object name**,
 type `Vocal tract`: the name appears in the list, and later in the exported files.
 
-<img src="images/en/object-objects-tab.webp" alt="The Objects tab, with the object named Vocal tract" width="437">
+<img src="images/en/object-objects-tab.webp" alt="The Objects tab, with the object named Vocal tract" width="453">
 
 ## Bounding the region with a box
 
@@ -37,7 +37,7 @@ only; the lower edge leaves out the larynx.
 
 Open the **Prediction** tab and click **Predict masks on current image**.
 
-<img src="images/en/object-prediction-tab.webp" alt="The Prediction tab, with the Predict masks on current image button at the top" width="437">
+<img src="images/en/object-prediction-tab.webp" alt="The Prediction tab, with the Predict masks on current image button at the top" width="453">
 
 VOLUTE confirms that the prediction succeeded: click **OK**. The mask is drawn in blue
 over the image — and it covers almost everything inside the box: the air of the vocal

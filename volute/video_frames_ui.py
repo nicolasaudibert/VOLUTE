@@ -2,9 +2,11 @@
 Video Frames UI
 UI-facing half of frame extraction: the dialog gathering the extraction
 options, and the controller that runs FFmpegManager.extract_frames() behind a
-progress dialog, then offers to load the extracted frames.
+progress dialog, records beside the frames the video they came from, then
+offers to load them.
 """
 
+import json
 import os
 
 from PyQt5.QtWidgets import (
@@ -32,6 +34,35 @@ DESTINATION_SUFFIX = "_frames"
 
 # Upper bound of the time fields when the video's duration is unknown
 MAX_SECONDS = 24 * 3600.0
+
+# Written into a folder of extracted frames: the video they came from, the
+# frame rate they were extracted at (None: every frame) and the time of the
+# first one, in seconds
+SOURCE_FILE = "volute_source.json"
+
+
+def read_video_source(folder):
+    """The source record of a folder of extracted frames, or None."""
+    try:
+        with open(os.path.join(folder, SOURCE_FILE), encoding='utf-8') as f:
+            source = json.load(f)
+    except (OSError, ValueError, TypeError):
+        return None
+    if not isinstance(source, dict) or not source.get('video'):
+        return None
+    return {'video': source['video'], 'fps': source.get('fps'),
+            'start': float(source.get('start') or 0.0)}
+
+
+def write_video_source(folder, video, fps=None, start=None):
+    """Record in folder the video its frames were extracted from. A failure
+    to write it is silent: only the video export's defaults depend on it."""
+    try:
+        with open(os.path.join(folder, SOURCE_FILE), 'w', encoding='utf-8') as f:
+            json.dump({'video': os.path.abspath(video), 'fps': fps,
+                       'start': float(start or 0.0)}, f, indent=2)
+    except OSError:
+        pass
 
 
 def frame_stem(video_path):
@@ -86,6 +117,9 @@ class VideoFramesDialog(QDialog):
         line_edit = QLineEdit()
         row.addWidget(line_edit)
         browse = QPushButton(self.loc.get_text("settings_browse"))
+        # Otherwise it becomes the default button whenever its field has the
+        # focus, and Return browses instead of confirming the dialog
+        browse.setAutoDefault(False)
         browse.clicked.connect(browse_slot)
         row.addWidget(browse)
         return line_edit, container
@@ -383,6 +417,10 @@ class VideoFramesController:
             return
 
         folder = options['output_folder']
+        # For the video export to start from this video's frame rate, format
+        # and audio when these frames are loaded
+        write_video_source(folder, options['video_path'], fps=options['fps'],
+                           start=options['start'])
         answer = localized_question(
             mw, loc, loc.get_text("video_frames_title"),
             loc.get_text("video_frames_done_load", count, folder),

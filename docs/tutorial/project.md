@@ -41,7 +41,11 @@ from GIMP come back too; the other frames have no mask yet.
 <img src="images/en/project-resumed.webp" alt="Frame 1 after opening the project: the masks imported from GIMP, the points and the reference points" width="450">
 
 4. In the **Prediction** tab, click **Propagate masks through video**: the masks of every
-   frame are computed again, from the imported masks of frame 1.
+   frame are computed again, from the imported masks of frame 1 and, for the tongue, from
+   the correction on frame 63. As the tongue has two annotated frames, VOLUTE first asks
+   how to share out the frames between them (see
+   [step 6](tracking.md#several-annotated-frames)): keep **Junction at midpoint** and
+   click **OK**.
 
 <img src="images/en/project-propagated.webp" alt="Frame 75 after the propagation, with the vocal tract and the tongue" width="450">
 

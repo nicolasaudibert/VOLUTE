@@ -6,8 +6,8 @@ docs/tutorial/images/<language>/.
 
 Each language runs in a process of its own, with SAM2.1 Large. VOLUTE's
 settings are read from a copy of volute_config.yaml, so the run changes none of
-them, and the optional progress animation is left out, as in a default
-installation. The frames are extracted under /Users/Shared/VOLUTE-tutorial on
+them; the progress dialogs show the animation an installation ships with, at
+whatever frame it has reached when captured. The frames are extracted under /Users/Shared/VOLUTE-tutorial on
 macOS, a path that names nobody, and deleted afterwards.
 
 The windows open on the screen while it runs, with the platform's own look;
@@ -221,14 +221,12 @@ class Session:
         config.write_text(text, encoding="utf-8")
 
         import volute.config_manager as config_manager
-        import volute.progress_animation as progress_animation
 
         def load_copy(manager, path=str(config)):
             manager.config_file_path = path
             manager._load_yaml_config(path)
 
         config_manager.ConfigManager._load_config = load_copy
-        progress_animation.find_animation = lambda: None
 
         from PyQt5.QtCore import QTimer
         from PyQt5.QtWidgets import QApplication
@@ -734,21 +732,48 @@ class Session:
 
     def page_tracking(self):
         """Following both objects through the video from the corrected first
-        frame, then a tracking error further on, corrected on its frame and
-        re-propagated over a few frames each way."""
-        from volute.dialogs import RepropagationSpanDialog
+        frame, interrupted and resumed on the way; then a tracking error further
+        on, corrected on its frame and re-propagated over a few frames each way;
+        then the junction dialog a new propagation would open, and the frame
+        navigation."""
+        from PyQt5.QtWidgets import QMessageBox
+        from volute.dialogs import JunctionModeDialog, RepropagationSpanDialog
+
+        timing = {}
 
         def progress(dialog):
             self.wait_until(lambda: dialog.value() >= dialog.maximum() * 0.4)
             self.save(dialog, "tracking-progress")
+            timing['cancelled'] = time.time()
+            # As the Cancel button does: cancel() alone resets the dialog
+            # without emitting canceled(), and the propagation would go on
+            from PyQt5.QtWidgets import QPushButton
+            dialog.findChild(QPushButton).click()
+
+        def resume(box):
+            self.save(box, "tracking-resume-dialog")
+            timing['resumed'] = time.time()
+            box.defaultButton().click()
 
         self.go_to_frame(0)
         self.show_tab(self.window.TAB_PREDICTION)
         self.on_dialog(lambda d: d.metaObject().className() == "AnimatedProgressDialog", progress)
+        timing['started'] = time.time()
+        self.click(self.control("propagate_btn"))
+        self.wait_until(lambda: 'cancelled' in timing and self.app.activeModalWidget() is None)
+        self.pump(1.0)
+        # Known by its default button: a message box's title can read empty
+        resume_label = self.window.localization.get_text("resume_propagation_resume")
+        self.on_dialog(lambda d: isinstance(d, QMessageBox) and d.defaultButton() is not None
+                       and d.defaultButton().text() == resume_label, resume)
         self.click(self.control("propagate_btn"))
         frames = len(self.window.image_manager.image_paths)
         masks = self.window.object_manager.object_masks
-        self.wait_until(lambda: all(len(masks[i]) == frames for i in (1, 2)))
+        self.wait_until(lambda: 'resumed' in timing
+                        and all(len(masks[i]) == frames for i in (1, 2)))
+        finished = time.time()
+        print(f"  propagation: {timing['cancelled'] - timing['started'] + finished - timing['resumed']:.0f} s",
+              flush=True)
         self.wait_until(lambda: self.app.activeModalWidget() is None)
         self.pump(2.0)
         self.save_propagation_montage("tracking-propagated")
@@ -788,6 +813,29 @@ class Session:
         self.pump(2.0)
         self.reset_zoom()
         self.control("show_object_labels_checkbox").setChecked(True)
+
+        # The tongue now has two annotated frames: a new propagation would ask
+        # how to share out the frames between them. The dialog is cancelled,
+        # leaving the masks as they are
+        def junction(dialog):
+            self.save(dialog, "tracking-junction-dialog")
+            dialog.reject()
+
+        self.on_dialog(lambda d: isinstance(d, JunctionModeDialog), junction)
+        self.show_tab(self.window.TAB_PREDICTION)
+        self.click(self.control("propagate_btn"))
+        self.wait_until(lambda: self.app.activeModalWidget() is None)
+        self.pump(1.0)
+
+        # Frame navigation: the annotated frames of the tongue, in its tab, and
+        # its predicted frames, in the prediction tab
+        self.go_to_frame(0)
+        self.select_object(1)
+        self.save(self.group_box(self.control("annotated_next_btn")), "tracking-navigation-annotated")
+        self.show_tab(self.window.TAB_PREDICTION)
+        self.save(self.group_box(self.control("result_next_btn")), "tracking-navigation-prediction")
+        self.click(self.control("result_next_btn"))
+        assert self.window.image_manager.current_image_idx == TRACKING_ERROR_FRAME
         self.go_to_frame(0)
 
     def zoom_to(self, x0, y0, x1, y1):
@@ -807,10 +855,12 @@ class Session:
         self.pump(0.5)
 
     def page_export(self):
-        """Exporting: the Export menu, the images with their masks, and the
-        distances from the masks to the reference points, drawn as a chart."""
+        """Exporting: the Export menu, the images with their masks, the video
+        made of them, and the distances from the masks to the reference
+        points, drawn as a chart."""
         from PyQt5.QtWidgets import QFileDialog, QMenu, QMessageBox
         from volute.pair_selection_dialog import PairSelectionDialog
+        from volute.video_export import VideoExportDialog
         self.go_to_frame(0)
         menu = next(widget for widget in self.ui._export_actions[0].associatedWidgets()
                     if isinstance(widget, QMenu))
@@ -825,6 +875,18 @@ class Session:
         frame = Path(self.window.image_manager.get_all_image_paths()[DISPLAY_FRAME]).stem
         masked = next(images.rglob(f"{frame}*.jpg"))
         self.save_raw(masked, "export-masked-image")
+
+        # The video, its dialog started from the video the extraction
+        # recorded beside the frames, written where it suggests
+        def video_dialog(dialog):
+            self.save(dialog, "export-video-dialog")
+            dialog.accept()
+
+        frames = Path(self.window.image_manager.current_folder)
+        video = frames.parent / f"{frames.name}_masks.mp4"
+        self.on_dialog(lambda d: isinstance(d, VideoExportDialog), video_dialog)
+        self.window.export_video()
+        self.wait_until(lambda: video.exists() and self.app.activeModalWidget() is None)
 
         def pairs_dialog(dialog):
             self.save(dialog, "export-pairs-dialog")
@@ -946,6 +1008,10 @@ class Session:
         self.pump(1.0)
         self.save_image_area("project-resumed")
 
+        # The tongue has two annotated frames, 1 and the corrected one: the
+        # propagation asks for the junction between them, left at the midpoint
+        from volute.dialogs import JunctionModeDialog
+        self.on_dialog(lambda d: isinstance(d, JunctionModeDialog), lambda d: d.accept())
         self.show_tab(self.window.TAB_PREDICTION)
         self.click(self.control("propagate_btn"))
         frames = len(self.window.image_manager.image_paths)

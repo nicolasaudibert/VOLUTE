@@ -138,6 +138,12 @@ Dans la documentation de référence, sur GitHub, la section
 [Getting started](https://github.com/nicolasaudibert/VOLUTE/blob/main/README.md#getting-started)
 du README résume l'enchaînement complet.
 
+Si le suivi confond l'objet avec un voisin qui lui ressemble sur toute une partie de la
+vidéo, délimitez aussi l'objet sur une trame plus loin, puis propagez : la propagation
+part alors de chacune des trames annotées, comme le montre
+[Plusieurs trames annotées](tutorial/tracking.fr.md#plusieurs-trames-annotées) dans le
+tutoriel.
+
 Cette correction est celle à essayer en premier. Si elle ne donne pas un résultat
 satisfaisant, les masques peuvent être retouchés à la main : voir
 [Peut-on retoucher un masque à la main ?](#peut-on-retoucher-un-masque-à-la-main-)
@@ -187,6 +193,16 @@ pas compatible avec VOLUTE. Dans le tutoriel :
 - Découpez une très longue séquence en plusieurs séquences plus courtes.
 
 Sans carte graphique adaptée, la propagation reste lente quels que soient les réglages.
+
+### Peut-on interrompre une propagation, et la reprendre plus tard ?
+
+Oui. **Annuler**, dans la fenêtre de progression, arrête la propagation en gardant les
+masques déjà calculés. Le clic suivant sur **Propager les masques sur toute la vidéo**
+propose de reprendre là où elle s'était arrêtée, ce qui donne les mêmes masques qu'une
+propagation menée d'une traite, ou de tout recommencer. La reprise n'est possible que
+dans la même session : après la fermeture de VOLUTE ou le chargement d'un projet, la
+propagation recommence au début. Dans le tutoriel :
+[Interrompre et reprendre la propagation](tutorial/tracking.fr.md#interrompre-et-reprendre-la-propagation).
 
 ### Les masques ont de petits trous, ou un message mentionne « Skipping the post-processing step »
 

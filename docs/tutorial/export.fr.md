@@ -21,6 +21,7 @@ gardent le nom de leur fichier d'origine, si bien que chaque ligne renvoie à so
 | Entrée | Format | Contenu du fichier |
 |---|---|---|
 | **Exporter les images avec masques** | images JPEG | chaque trame, avec les masques dessinés par-dessus |
+| **Exporter une vidéo avec masques…** | MP4, MOV, MKV | les mêmes images, en vidéo, avec la piste audio de la vidéo d'origine |
 | **Exporter les coordonnées des masques** | JSON, CSV, Pickle | pour chaque trame, chaque pixel de chaque masque |
 | **Exporter les centres de gravité** | XLSX, CSV, JSON | les coordonnées en pixels du centre de gravité de chaque masque, trame par trame |
 | **Exporter les points de masque les plus proches…** | XLSX, CSV, JSON | la distance en pixels de chaque masque à chaque point de référence |
@@ -40,6 +41,41 @@ gauche, l'axe vertical orienté vers le bas.
 mais sans étiquettes ni points de référence. Ici, la trame 75 :
 
 <img src="images/fr/export-masked-image.webp" alt="La trame 75 exportée, avec le conduit vocal et la langue dessinés par-dessus" width="450">
+
+## Une vidéo avec les masques
+
+**Exporter une vidéo avec masques…** fait de ces images une vidéo, avec ffmpeg, le
+programme qui a extrait les trames à l'étape 2. Toutes les trames y figurent, celles
+sans masque comprises, pour que la vidéo garde le rythme de l'original.
+
+<img src="images/fr/export-video-dialog.webp" alt="La fenêtre Exporter une vidéo avec masques, avec la vidéo d'origine, la fréquence d'images, la piste audio, le fichier de sortie, le conteneur, le codec et le débit" width="760">
+
+Si les trames ont été extraites par VOLUTE, la fenêtre connaît la vidéo dont elles
+viennent, et en reprend les réglages : la fréquence d'images (dans ce cas 50 images par
+seconde), le format (ici un MP4 en H.264), son débit, et sa piste audio, prise à partir
+de l'instant de la première trame extraite. Le fichier projet garde aussi la vidéo d'origine. Pour des
+trames d'une autre provenance, indiquez la vidéo d'origine avec **Parcourir…**, ou
+réglez seulement la fréquence d'images.
+
+**Audio** propose aussi **Autre fichier**, pour une vidéo d'origine indisponible ou
+muette, ou pour remplacer sa piste audio. La fenêtre indique alors la durée du fichier
+et celle de la vidéo, et ce que le placement choisi coupe ou laisse silencieux :
+**Placement** met l'audio au début, au milieu ou à la fin de la vidéo, ou à un décalage
+donné en secondes, négatif pour en sauter le début, et **Jouer en boucle** répète un
+audio plus court que la vidéo. **Aucun** donne une vidéo muette. Le choix est repris au
+prochain export, et enregistré dans le fichier projet.
+
+- **Conteneur** et **Codec vidéo** proposent aussi le format MOV ou MKV, et les codecs
+  H.265 ou Apple ProRes.
+- **Format audio** est réglé par défaut sur **Automatique**, qui copie la piste audio
+  telle quelle quand le conteneur l'accepte, et la convertit sinon dans le format le
+  plus adapté au conteneur, que la liste indique entre parenthèses. La liste propose
+  aussi les autres formats acceptés, avec leur débit, et **Fréquence d'échantillonnage**
+  permet de rééchantillonner à 44,1 ou 48 kHz.
+- **Débit vidéo** règle la qualité, sauf en ProRes, qui a la sienne.
+
+Cliquez sur **Exporter** : la vidéo, `nancy_P1_S1_excerpt_frames_masks.mp4`, est
+écrite à côté du dossier des trames.
 
 ## Les distances aux points de référence
 

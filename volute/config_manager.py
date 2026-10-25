@@ -56,6 +56,10 @@ class ConfigManager:
             'performance': {
                 'image_cache_size': 32,   # max frames in LRU cache (0 = unlimited)
             },
+            'propagation': {
+                'junction_mode': 'midpoint',   # see get_junction_mode
+                'ask_junction_mode': True,
+            },
             'gimp': {
                 'executable_path': None,   # manual override; None = auto-detect
             },
@@ -461,6 +465,19 @@ class ConfigManager:
         of the operations that report steps. Anything else reads as 'file'."""
         value = self.get('ui.progress_animation_pacing', 'file')
         return value if value in ('file', 'progress') else 'file'
+
+    def get_junction_mode(self):
+        """How a propagation shares out the frames between two consecutive
+        annotated frames of an object: each mask over its half (the default),
+        the first mask only ('forward') or the second only ('backward').
+        Anything else reads as the default."""
+        value = self.get('propagation.junction_mode', 'midpoint')
+        return value if value in ('midpoint', 'forward', 'backward') else 'midpoint'
+
+    def ask_junction_mode(self):
+        """Whether a propagation asks for the junction mode when an object has
+        several annotated frames, rather than applying get_junction_mode()"""
+        return bool(self.get('propagation.ask_junction_mode', True))
 
     def use_native_file_dialogs(self):
         """Whether file dialogs are drawn by the system (macOS/Windows) or by Qt.

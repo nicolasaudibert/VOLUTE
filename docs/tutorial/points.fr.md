@@ -45,25 +45,28 @@ l'image entière.
 Cliquez sur **Propager les points dans la vidéo**. SAM2++ suit le point de trame en
 trame, plus vite que des masques : environ une minute pour les 111 trames.
 
-![Les trames 1, 38, 43 et 78, avec l'apex lingual marqué, juste au-dessus de la langue sur la trame 38](images/fr/points-tracked.webp)
+![Les trames 1, 38, 43 et 78, avec l'apex lingual marqué, sauf sur la trame 38](images/fr/points-tracked.webp)
 
-L'apex est suivi quand la langue recule, sur les trames 43 et 78. Sur la trame 38, la
-croix s'écarte de la pointe et se place juste au-dessus de la langue. Ici, le modèle a
-donné une position sur toutes les trames, mais il lui arrive de perdre le point sur
-certaines et de n'y donner aucune position. Les trames où le suivi se trompe ou se
-perd peuvent changer d'une exécution à l'autre, SAM2++ ne donnant pas exactement le même
-résultat à chaque fois (voir dans la FAQ
+L'apex est suivi quand la langue recule, sur les trames 43 et 78. Autour de la trame 38,
+le modèle le perd, et ne donne aucune position : la trame 38 n'a pas de croix. Les
+trames perdues peuvent changer d'une exécution à l'autre, SAM2++ ne donnant pas
+exactement le même résultat à chaque fois (voir dans la FAQ
 [Les mêmes points donnent-ils toujours exactement les mêmes masques ?](../faq.fr.md#les-mêmes-points-donnent-ils-toujours-exactement-les-mêmes-masques-)).
-Le suivi de points ne se corrige pas : vérifiez la trajectoire
-trame par trame, et traitez les trames sans point comme des valeurs manquantes.
+Pour corriger le suivi, placez le point à sa bonne position sur une trame où il se
+trompe, prédisez, puis propagez de nouveau : comme les masques à
+l'[étape 6](tracking.fr.md#plusieurs-trames-annotées), le point est alors suivi à partir
+de chacune des trames où il a été placé. Vérifiez la trajectoire trame par trame, et
+traitez les trames sans point comme des valeurs manquantes.
 
 ## Exporter les positions
 
-En mode suivi de points, le menu **Fichier › Exportation** contient trois entrées :
+En mode suivi de points, le menu **Fichier › Exportation** contient quatre entrées :
 
 - **Exporter les points suivis** (Ctrl + Maj + P, ou ⇧ + ⌘ + P) écrit une ligne par trame
   où le point a été trouvé : son nom, la trame, et ses coordonnées `X_px` et `Y_px` ;
 - **Exporter les images avec les points suivis** écrit chaque trame avec ses marqueurs ;
+- **Exporter une vidéo avec points suivis…** en fait une vidéo, comme à
+  l'[étape 8](export.fr.md#une-vidéo-avec-les-masques) pour les masques ;
 - **Exporter les distances aux points de référence…** mesure, comme à l'étape 8, la
   distance de chaque point aux points de référence posés dans cette session.
 
@@ -77,12 +80,12 @@ trames, ouvrez le projet et propagez les masques, comme à l'étape 9. Choisisse
 **Fichier › Importer les points suivis…** (Ctrl + Maj + J, ou ⇧ + ⌘ + J) et sélectionnez
 le fichier exporté.
 
-VOLUTE vérifie que le fichier correspond aux trames. Il les couvre ici toutes les 111, et
-l'import se fait sans autre question. S'il en manquait, parce que le point avait été
-perdu sur certaines, VOLUTE indiquerait combien le fichier en couvre et demanderait s'il
-faut continuer.
+VOLUTE vérifie que le fichier correspond aux trames, et signale ici qu'il en couvre 108
+sur 111, les trois trames où le point a été perdu manquant :
 
-L'apex apparaît désormais à côté des masques, comme **point
+<img src="images/fr/points-import-count-warning.webp" alt="L'avertissement indiquant que le fichier importé couvre 108 trames alors que le dossier contient 111 images" width="420">
+
+Cliquez sur **Oui**. L'apex apparaît désormais à côté des masques, comme **point
 importé**, sur chaque trame où il a été trouvé. Ici, la trame 43 :
 
 <img src="images/fr/points-imported.webp" alt="La trame 43 avec le conduit vocal, la langue, les points de référence et l'apex lingual importé" width="450">

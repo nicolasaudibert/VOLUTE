@@ -45,7 +45,10 @@ masque.
 
 4. Dans l'onglet **Prédiction**, cliquez sur **Propager les masques sur toute la
    vidéo** : les masques de toutes les trames sont recalculés, à partir des masques
-   importés de la trame 1.
+   importés de la trame 1 et, pour la langue, de la correction de la trame 63. La langue
+   ayant deux trames annotées, VOLUTE demande d'abord comment partager les trames qui les
+   séparent (voir l'[étape 6](tracking.fr.md#plusieurs-trames-annotées)) : gardez
+   **Jonction au milieu** et cliquez sur **OK**.
 
 <img src="images/fr/project-propagated.webp" alt="La trame 75 après la propagation, avec le conduit vocal et la langue" width="450">
 

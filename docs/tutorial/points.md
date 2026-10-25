@@ -48,16 +48,21 @@ the model loses it, and gives no position at all: frame 38 has no cross. The fra
 lost can change from one run to the next, SAM2++ not giving exactly the same result every
 time (see
 [Do the same points always give exactly the same masks?](../faq.md#do-the-same-points-always-give-exactly-the-same-masks)
-in the FAQ). Point tracking offers no correction: check the track frame by frame, and treat the
-frames without a point as missing values.
+in the FAQ). To correct the tracking, place the point at its right position on a frame where it goes
+wrong, predict, then propagate again: as with the masks in
+[step 6](tracking.md#several-annotated-frames), the point is then followed from each of
+the frames on which it was placed. Check the track frame by frame, and treat the frames
+without a point as missing values.
 
 ## Exporting the positions
 
-In point tracking mode, the **File › Export** menu holds three entries:
+In point tracking mode, the **File › Export** menu holds four entries:
 
 - **Export tracked points** (Ctrl + Shift + P, or ⇧ + ⌘ + P) writes one row per frame on
   which the point was found: its name, the frame, and its coordinates `X_px` and `Y_px`;
 - **Export images with tracked points** writes each frame with its markers;
+- **Export Video with Tracked Points…** makes a video of them, as
+  [step 8](export.md#a-video-with-the-masks) does for masks;
 - **Export closest tracked point distances…** measures, as in step 8, the distance from
   each point to reference points placed in this session.
 
@@ -83,7 +88,7 @@ where it was found. Here, frame 43:
 The **Imported Points** panel, in the **Prediction** tab, shows or hides them all, and sets
 each point's colour, marker and size.
 
-<img src="images/en/points-imported-panel.webp" alt="The Imported Points panel, with Tongue apex in its list" width="437">
+<img src="images/en/points-imported-panel.webp" alt="The Imported Points panel, with Tongue apex in its list" width="453">
 
 ## The point and the masks together
 

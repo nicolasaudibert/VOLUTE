@@ -42,6 +42,10 @@ qualité des images JPEG exportées (étape 8).
 
 - **Images gardées en mémoire** : sur une longue vidéo, un nombre plus faible ménage la
   mémoire de l'ordinateur, au prix de la vitesse.
+- **Jonction entre trames annotées** : comment la propagation partage les trames qui
+  séparent deux trames annotées d'un même objet, et **Demander la jonction à chaque
+  propagation** : poser la question chaque fois, ou appliquer ce choix sans demander
+  (voir l'[étape 6](tracking.fr.md#plusieurs-trames-annotées)).
 - **Exécutable GIMP** et **Exécutable ffmpeg** : laissés vides, VOLUTE trouve GIMP
   (étape 5) et ffmpeg (étape 2) de lui-même. Ne les remplissez que s'il n'y parvient
   pas.
@@ -71,6 +75,7 @@ Sur Mac, ⌘ remplace Ctrl, et ⇧ désigne Maj.
 | Ctrl + Maj + F | Exporter toutes les trames pour édition (GIMP) |
 | Ctrl + Maj + J | Importer les points suivis |
 | Ctrl + Maj + I | Exporter les images avec masques (ou avec les points suivis) |
+| Ctrl + Maj + V | Exporter une vidéo avec masques (ou avec les points suivis) |
 | Ctrl + Maj + M | Exporter les coordonnées des masques |
 | Ctrl + Maj + T | Exporter les centres de gravité |
 | Ctrl + Maj + K | Exporter les points de masque les plus proches (ou les distances aux points de référence) |

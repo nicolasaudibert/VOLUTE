@@ -184,9 +184,10 @@ class ImportedPointControls:
 
     def _refresh_list(self):
         ipm = getattr(self.main_window, 'imported_point_manager', None)
-        if not ipm:
+        lst = self.controls.get('imported_points_list')
+        # The panel does not exist in point tracking mode
+        if not ipm or lst is None:
             return
-        lst = self.controls['imported_points_list']
         lst.blockSignals(True)
         lst.clear()
         names = ipm.get_names()

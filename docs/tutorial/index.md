@@ -48,7 +48,8 @@ in
 5. [Correcting masks](corrections.md): spotting the structures wrongly taken as part of
    the vocal tract, correcting the outline with points, and retouching by hand in GIMP.
 6. [Following the objects through the video](tracking.md): propagating the masks to every
-   frame, checking the tracking, and correcting it where it goes wrong.
+   frame, checking the tracking, correcting it where it goes wrong, and moving between
+   the annotated frames.
 7. [Display and reference points](display.md): contours, centroids and other display
    settings, then landmarks for measuring distances.
 8. [Exporting the results](export.md): images with their masks, coordinates, and the

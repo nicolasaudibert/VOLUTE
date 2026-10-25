@@ -46,6 +46,10 @@ SETTINGS_FIELDS = [
     ('export.image_quality',           'export',    'settings_image_quality',       'int',      (1, 100)),
 
     ('performance.image_cache_size',   'tools',     'settings_cache_size',          'int',      (0, 100000)),
+    ('propagation.junction_mode',      'tools',     'settings_junction_mode',       'choice',   (('midpoint', 'settings_junction_midpoint'),
+                                                                                                 ('forward', 'settings_junction_forward'),
+                                                                                                 ('backward', 'settings_junction_backward'))),
+    ('propagation.ask_junction_mode',  'tools',     'settings_ask_junction_mode',   'bool',     None),
     ('gimp.executable_path',           'tools',     'settings_gimp_path',           'path',     None),
     ('ffmpeg.executable_path',         'tools',     'settings_ffmpeg_path',         'path',     None),
 

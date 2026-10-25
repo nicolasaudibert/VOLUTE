@@ -11,7 +11,7 @@ vocal tract of the previous step: the tongue, outlined this time with a box alon
 In the **Objects** tab, click **Add object**. **Object 2** appears in the list, selected;
 in **Object name**, type `Tongue`.
 
-<img src="images/en/objects-second-object.webp" alt="The Objects tab, with Vocal tract and Tongue in the object list" width="437">
+<img src="images/en/objects-second-object.webp" alt="The Objects tab, with Vocal tract and Tongue in the object list" width="453">
 
 The object selected in the list is the one that receives the clicks and the box. To work
 on another object again, click its name in the list first.

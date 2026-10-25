@@ -36,6 +36,8 @@ from .gimp_export_manager import GimpExportManager
 from .gimp_ui_controller import GimpUIController
 from .ffmpeg_manager import FFmpegManager
 from .video_frames_ui import VideoFramesController
+from .video_export import VideoExportController
+from .video_frames_ui import read_video_source
 from .export_actions import ExportActions
 from .property_controller import PropertyController
 from .dialogs import localized_question, RepropagationSpanDialog
@@ -115,6 +117,12 @@ class SAM2VideoSegmentationApp(QMainWindow):
         self.gimp_ui_controller = GimpUIController(self)
         self.ffmpeg_manager = FFmpegManager(self, debug_mode=self.debug_mode)
         self.video_frames_controller = VideoFramesController(self)
+        self.video_export_controller = VideoExportController(self)
+        # The video the loaded frames were extracted from, as video_frames_ui
+        # records it, or None when nothing says; and the audio chosen at the
+        # last video export of these frames
+        self.video_source = None
+        self.export_audio = None
         self.export_actions = ExportActions(self)
         self.property_controller = PropertyController(self)
         
@@ -387,6 +395,8 @@ class SAM2VideoSegmentationApp(QMainWindow):
                 success = self.image_manager.load_images_from_folder(folder)
                 if not success:
                     return False
+                self.video_source = read_video_source(folder)
+                self.export_audio = None
                 # Object 1, recreated empty, starts from its box
                 self.set_prompt_mode(self.MODE_DEFINE_BOX)
 
@@ -1066,6 +1076,80 @@ class SAM2VideoSegmentationApp(QMainWindow):
         if target is not None:
             self.image_manager.load_image(target)
     
+    def _navigation_object_ids(self):
+        """Objects the frame navigation buttons follow: those selected."""
+        om = self.object_manager
+        return [obj_id for obj_id in om.selected_object_ids if obj_id in om.object_colors]
+
+    def _annotated_navigation_frames(self):
+        """Frames carrying points or a box for at least one selected object."""
+        frames = set()
+        for obj_id in self._navigation_object_ids():
+            frames.update(self.object_manager.get_prompt_frames(obj_id))
+        return frames
+
+    def _result_navigation_frames(self):
+        """Frames the prediction tab's navigation steps between, for the
+        selected objects: predicted or imported results, junctions, or both,
+        as the combo says — results alone while no selected object has a
+        junction."""
+        om = self.object_manager
+        combo = self.ui_manager.get_control('result_nav_combo')
+        mode = combo.currentData() if combo and combo.isEnabled() else 'results'
+        frames = set()
+        for obj_id in self._navigation_object_ids():
+            if mode in ('results', 'both'):
+                frames.update(om.get_result_origin_frames(obj_id))
+            if mode in ('junctions', 'both'):
+                frames.update(om.get_junction_frames(obj_id))
+        return frames
+
+    def goto_annotated_frame(self, forward):
+        """Jump to the next (forward) or previous frame carrying points or a
+        box for a selected object."""
+        target = self.object_manager.adjacent_frame(
+            self._annotated_navigation_frames(), self.image_manager.current_image_idx, forward)
+        if target is not None:
+            self.image_manager.load_image(target)
+
+    def goto_result_frame(self, forward):
+        """Jump to the next (forward) or previous frame the prediction tab's
+        navigation steps between."""
+        target = self.object_manager.adjacent_frame(
+            self._result_navigation_frames(), self.image_manager.current_image_idx, forward)
+        if target is not None:
+            self.image_manager.load_image(target)
+
+    def _refresh_frame_navigation_state(self):
+        """Enable each navigation button when a frame lies that way, offer the
+        junctions once a selected object has some, and say in the buttons'
+        tooltip when those junctions no longer match the annotated frames."""
+        om = self.object_manager
+        has_images = self.image_manager.has_images()
+        current = self.image_manager.current_image_idx
+        obj_ids = self._navigation_object_ids()
+
+        combo = self.ui_manager.get_control('result_nav_combo')
+        if combo:
+            combo.setEnabled(any(om.get_junction_frames(o) for o in obj_ids))
+
+        for prefix, frames in (('annotated', self._annotated_navigation_frames()),
+                               ('result', self._result_navigation_frames())):
+            for suffix, forward in (('prev', False), ('next', True)):
+                btn = self.ui_manager.get_control(f'{prefix}_{suffix}_btn')
+                if btn:
+                    btn.setEnabled(has_images and
+                                   om.adjacent_frame(frames, current, forward) is not None)
+
+        outdated = (combo is not None and combo.isEnabled()
+                    and combo.currentData() in ('junctions', 'both')
+                    and any(om.junctions_outdated(o) for o in obj_ids))
+        tooltip = self.localization.get_text("result_nav_outdated_tooltip") if outdated else ""
+        for name in ('result_prev_btn', 'result_next_btn'):
+            btn = self.ui_manager.get_control(name)
+            if btn:
+                btn.setToolTip(tooltip)
+
     def toggle_object_points_visibility(self):
         """Toggle point visibility for all selected objects"""
         checkbox = self.ui_manager.get_control('obj_show_points_checkbox')
@@ -1323,6 +1407,10 @@ class SAM2VideoSegmentationApp(QMainWindow):
     def export_images_with_tracked_points(self):
         """Delegate to export actions controller"""
         return self.export_actions.export_images_with_tracked_points()
+
+    def export_video(self):
+        """Delegate to video export controller"""
+        return self.video_export_controller.export_video()
 
     def open_settings_dialog(self):
         """Open the settings dialog; most changes apply at the next start, the

@@ -25,6 +25,7 @@ The application works on a folder of numbered images. **File › Extract Frames 
 - **Destination already holding images**: refused, with a message, rather than mixed with the new frames; files other than images are tolerated. A destination that does not exist is created
 - **Progress and cancellation**: ffmpeg runs in a worker thread behind a progress dialog, reporting each frame written through its `-progress` output. It writes into a hidden staging folder inside the destination, and the frames are renamed into place only once it has succeeded; Cancel stops ffmpeg and removes everything written, along with the destination folder when the extraction created it. A failure is reported with ffmpeg's own message, and cleaned up the same way
 - **ffmpeg not found**: the menu entry stays available and explains, when chosen, how to install ffmpeg or where to set its path (`ffmpeg.executable_path`, see Configuration). Detection runs again each time, so an installation or a new path takes effect without restarting
+- **Source record**: a successful extraction writes `volute_source.json` into the destination, naming the video, the frame rate extracted at (`null` for every frame) and the time of the first frame, in seconds. Loading that folder later reads it back, and the video export starts from it (see Export)
 
 ### Point-Based Segmentation (mask mode)
 - **Add points mode** — unified interaction:
@@ -71,10 +72,15 @@ A third way to define a mask, combinable with the points above: an optional boun
 
 ### Mask Prediction and Propagation (SAM2 / MedSAM2 / SAM2++ mask mode)
 - **Predict on current frame** — runs SAM2 inference for all objects carrying a prompt on the active frame: points, a bounding box, or both
-- **Propagate through video** — bidirectional propagation (forward from reference frame, then backward if the reference is not the first frame)
+- **Propagate through video** — bidirectional propagation from every frame an object was annotated on (points, box or imported mask; a correction counts too): backward from its first annotated frame to the start of the video, forward from its last one to the end
+  - **Several annotated frames**: between two consecutive annotated frames of an object, the frames are shared out according to the *junction* — at the midpoint by default, each mask being propagated over its half (forward from the first, backward from the second), or the whole span forward from the first mask only, or backward from the second only. A propagation in which some object has several annotated frames asks for it in a dialog, whose **Advanced Settings…** button sets the junction segment by segment; **Don't ask again** keeps the choice, which **Settings › Performance and tools** shows and lets ask again (`propagation.junction_mode`, `propagation.ask_junction_mode`). Annotated frames SAM2 does not hold — after a project load, which replays one prompted frame per object — are re-registered from their stored mask before planning. The layout of the last propagation (segments and junction points, per object) is kept in `ObjectManager.object_propagation_segments`
+  - **Passes**: objects with the same annotated frames and the same junctions are propagated together, in one pass — SAM2 tracks every object at each frame anyway, so one pass serves them all. Objects annotated on different frames need one pass per group, which processes each frame again
+  - **Memory around annotated frames**: a span starting from an annotated frame first drops SAM2's propagated memories around that frame (as far back and ahead as SAM2's memory reaches), so that what the tracker followed before a mask the person set does not outweigh that mask on the following frames. SAM2's own option for this, `clear_non_cond_mem_around_input`, calls a method its video predictor lacks, so VOLUTE does it itself
+  - **Every annotated frame stays in SAM2's memory** for the whole video, whatever the junction: a decoy that reaches the place the tracked object held on a distant annotated frame can still be taken for it
+  - **Resuming an interrupted propagation**: the masks propagated before **Cancel** are kept, and the next **Propagate through video** offers to **Resume** where it stopped, **Start Over**, or cancel, stating how many frames were already processed — earlier resumed runs included — and how many remain; with several passes, the state of each is listed — done, in progress or to do, with its frame count — up to six passes, beyond which the totals alone are given. SAM2 keeps the memory of the frames already tracked, so resuming gives the same masks as an uninterrupted run. Resuming is the default when nothing changed since the interruption; when points, boxes, masks or objects changed — or a re-propagation ran — the dialog says so and **Start Over** becomes the default. Once SAM2's state has been reset (another folder, a project load), only starting over is possible, without a dialog
 - **Strict box confinement** (optional, Prediction tab) — clears every predicted pixel falling outside the object's bounding box. Two variants: *Frames with a box* clips only the frames that carry one, leaving propagated frames untouched; *All frames (reference box)* falls back to the box defined on the object's first frame everywhere else — only meaningful for an object that does not move, and warned about once per session
   - Clipping is applied before the mask is stored, so centroid, convex hull and outer contour all describe the clipped mask. It is therefore **not reversible**: turning the option back off affects subsequent predictions only, and an already-clipped mask has to be regenerated by predicting or propagating again
-  - **Forward/backward asymmetry**: clipping affects only the mask stored application-side. SAM2's internal state keeps the unclipped logits, so forward propagation from a clipped frame propagates the unclipped shape, whereas backward propagation — which resets the backend and replays the stored masks via `add_mask` — propagates the clipped one
+  - **Clipped mask and SAM2's memory**: clipping affects only the mask stored application-side. SAM2's internal state keeps the unclipped logits, so propagation from a clipped frame propagates the unclipped shape — except from an annotated frame re-registered from its stored mask via `add_mask` after a project load, which propagates the clipped one
 
 ### Mask-Based Initialization (mask mode only)
 For objects hard to segment from points alone, a pre-composed external binary mask (e.g. built in GIMP from combined geometric shapes) can be imported as the conditioning input for one or more frames, instead of — or before — placing points.
@@ -115,6 +121,7 @@ Place one positive point per object on a reference frame, then propagate. SAM2++
 - A localized mode indicator appears both in the window title and above the canvas when this mode is active
 - Mask-specific controls (centroids, contours, hulls, mask opacity) are not applicable in point mode
 - Results are exported independently from masks (see Export section), including distances to reference points
+- **Several annotated frames**: a point placed on more than one frame — before or after a propagation, a point added to a tracked frame then counting as annotated — is propagated from each of them, with the same junction choice, grouped passes and resumption after an interruption as masks (see Mask Prediction and Propagation)
 
 ### Display Options
 - Background image opacity slider
@@ -241,6 +248,7 @@ All exports use original source filenames. Export actions are disabled (greyed o
 | Export type | Format | Keyboard shortcut |
 |---|---|---|
 | Masked images (mask mode) / Images with tracked points (point mode) | JPEG | Ctrl/⌘+Shift+I |
+| Video with masks (mask mode) / with tracked points (point mode) | MP4 / MOV / MKV | Ctrl/⌘+Shift+V |
 | Mask coordinates | JSON / CSV / Pickle | Ctrl/⌘+Shift+M |
 | Centroids | XLSX / CSV / JSON | Ctrl/⌘+Shift+T |
 | Closest mask points (mask mode) / Closest tracked point distances (point mode) | XLSX / CSV / JSON | Ctrl/⌘+Shift+K |
@@ -251,6 +259,20 @@ All exports use original source filenames. Export actions are disabled (greyed o
 | Project data (save) | `.volute` | Ctrl/⌘+S |
 | Project data (open) | `.volute` | Ctrl/⌘+O |
 | SAM2 inference state | `.voluteinf` | — |
+
+#### Video export
+**File › Export › Export Video with Masks…** (**Export Video with Tracked Points…** in point mode) encodes every frame, drawn as the image export draws it — masks at their opacity over the background faded to the **Background opacity** slider's value, or tracked point markers with their names — into a video, with ffmpeg. Frames without a mask or a tracked point come as they are, so that the video keeps the original's timing. The frames are rendered and sent to ffmpeg through a pipe in a worker thread, behind a progress dialog; the video is written beside its final name under a temporary one and moved into place once ffmpeg has succeeded, so a failed or cancelled export leaves no partial file and does not touch a video it would replace.
+
+- **Original video**: the dialog starts from the video the frames were extracted from, as recorded beside them at extraction (`volute_source.json`), in the project file, or given earlier in the session. ffprobe then supplies its frame rate — or the rate the frames were extracted at, when that was not every frame — its container, video codec, bit rate and audio track. The video given in the dialog is kept for the session and saved in the next project file
+- **Audio**, one of three:
+  - **Original video's track** (the default when it has one): its first audio track, from **Start in the original video** — the time of the first frame extracted, by default — and for the frames' duration
+  - **Another file**: the first audio track of any audio file, or of a video. ffprobe reads its duration, and the dialog states it beside the video's, with what the placement cuts off or leaves silent. **Placement** puts it **At the start**, **In the middle** or **At the end** of the video, or at a **Custom offset**: the time of the video at which the audio starts, a negative one skipping its beginning. **Loop**, offered when the audio is shorter than the video, repeats it from there to the end. Whatever outlasts the video is cut, and what it leaves uncovered is silent (`adelay`, `apad` and `atrim` filters)
+  - **None**: a silent video
+- **Audio format**: **Automatic** by default, its label saying what it comes to — the audio copied as it is when the container holds its codec and nothing has to change it (any codec in MKV; AAC, MP3, AC-3, E-AC-3 or ALAC in MP4; the same plus 16- and 24-bit PCM in MOV), re-encoded otherwise as 24-bit PCM beside ProRes in MOV, FLAC in MKV, AAC elsewhere. The list also offers the formats the container takes and the installed ffmpeg can write — AAC, MP3, ALAC in MP4; AAC, MP3, ALAC, 16- and 24-bit PCM in MOV; AAC, MP3, Opus, FLAC, 16- and 24-bit PCM in MKV — with a **Bit rate** for the lossy ones (192 kbit/s by default, 128 for Opus). **Audio sample rate** keeps the audio's own, or resamples to 44.1 or 48 kHz. A file placed anywhere but at the start, looped, or resampled is always re-encoded
+- **Remembered**: the audio chosen — its mode, its file and its placement — is kept for the session, and saved in the project file beside the original video; loading another frame folder forgets it
+- **Format**: **Container** MP4, QuickTime (MOV) or Matroska (MKV), and **Video codec** H.264 (`libx264`), H.265 (`libx265`, tagged `hvc1` for Apple players) or Apple ProRes 422 (`prores_ks`, MOV and MKV only). The defaults follow the original when it uses one of these, and fall back to H.264 in MP4 otherwise. H.264 and H.265 are written in 4:2:0, the frame padded to even dimensions when needed; **Video bit rate** defaults to the original's, or to 0.1 bit per pixel and frame when unknown, and does not apply to ProRes, sized by its profile
+- **Without an original video**: the frame rate is set by hand (25 frames/s by default), and the audio comes from another file, or there is none
+- **Output file**: suggested beside the frame folder, named after it — `<folder>_masks.<ext>`, or `<folder>_tracked_points.<ext>` in point mode; its extension follows the container. An existing file is replaced only once confirmed
 
 #### Closest mask point export (mask mode)
 For each (object, target) pair and each frame where both a mask and a target position exist, the mask pixel closest to the target is recorded along with the Euclidean distance in pixels.
@@ -378,6 +400,7 @@ Two progress bars are displayed during processing: one at item level (batch prog
 | Ctrl+Z | ⌘Z | Undo |
 | Ctrl+Shift+Z | ⌘⇧Z | Redo |
 | Ctrl+Shift+I | ⌘⇧I | Export masked images / images with tracked points |
+| Ctrl+Shift+V | ⌘⇧V | Export video with masks / with tracked points |
 | Ctrl+Shift+M | ⌘⇧M | Export mask coordinates |
 | Ctrl+Shift+T | ⌘⇧T | Export centroids |
 | Ctrl+Shift+K | ⌘⇧K | Export closest mask points / closest tracked point distances |
@@ -411,6 +434,7 @@ so the control panel's width stays stable until the user drags the splitter hand
 - Bulk **Import from file…**
 - **Show points (current object)** toggle (mask mode) / **Show current point** toggle (point mode) — displays points for all currently selected objects; adding new points is restricted to a single selection and triggers a warning dialog otherwise
 - **Clear point** / **Clear points** button (point mode only, label adapts to selection size) — clears the seed point of all selected objects on the current frame
+- **Annotated frames** group: **◀ Annotated frame** / **Annotated frame ▶** jump to the previous or next frame carrying points or a box for at least one selected object, on the model of the reference points' defined-frame buttons; each is enabled only when such a frame lies that way
 - Per-object/point configuration group, with a mixed-value indicator (hatched color swatch, blank marker-style dropdown, dash placeholder and greyed slider track for marker size / mask opacity) whenever the current multi-selection has differing values:
   - Mask mode: positive/negative point colors, mask color, marker style and size, mask opacity
   - Point mode: seed point color, tracked point color, marker style and size — no negative color, no opacity
@@ -430,6 +454,7 @@ so the control panel's width stays stable until the user drags the splitter hand
 **Tab 3 — Prediction:**
 - **Predict masks on current image** and **Propagate masks through video** buttons (in point tracking mode, labelled **Predict points on current frame** and **Propagate points through video**)
 - **Re-propagate from this frame…** button (mask mode only) — enabled once a correction point has been added to an already-tracked frame for the currently selected object; opens a bounded-span dialog before re-running propagation for that object only
+- **Navigate between** selector and **◀ Previous** / **Next ▶** buttons — jump to the previous or next frame, for the selected objects, whose result came from a prediction or an import rather than a propagation (*Predicted or imported masks*; *Predicted points* in point mode — where a frame carrying a seed and its tracked point counts, even when predicted in an earlier session), to the junction points of the last propagation (*Junction points*, each reached on the last frame filled from the earlier of its two annotated frames, the next frame being the first filled from the later one), or to both. The selector is greyed out, and the buttons step between results alone, until a selected object has junctions, i.e. once it has been propagated from several annotated frames. When predicted or imported frames have changed since that propagation, the buttons' tooltip says its junctions are outdated. Predicted masks are not saved in project files, so after a load their frames become navigable once predicting or propagating has regenerated them; the predicted frames and the propagation layout themselves are saved
 - **Masks strictly confined to box** checkbox and its **Clipping applies to** selector (mask mode only) — the selector is enabled only when the checkbox is ticked, and choosing the reference-box variant warns once per session
 - **Background opacity** slider
 - **Show labels** toggle
@@ -496,6 +521,7 @@ External YAML configuration file (`volute_config.yaml`), editable from **File �
 - Export formats (coordinates, centroids) and JPEG quality
 - Debug flags (`enabled`, `show_filename_mappings`, `show_mask_sync_details`)
 - Maximum number of frames kept in memory during SAM2 inference (LRU cache), parameter `performance.image_cache_size`. Default: 32. Set to 0 for unlimited.
+- Junction between two consecutive annotated frames of an object at propagation (`propagation.junction_mode`): `midpoint` (default), `forward` or `backward`, and whether to ask at each such propagation (`propagation.ask_junction_mode`, default `true`) — see Mask Prediction and Propagation
 - SAM2++ task (`models.sam2plus.task`): `mask` (default) or `point`
 - GIMP command-line executable override for the mask-editing export (`gimp.executable_path`); leave unset, which is the default, to auto-detect. Detection looks up `gimp-console` then `gimp` on `PATH`, and failing that inside `/Applications/GIMP.app/Contents/MacOS/`, since a macOS install puts neither on `PATH` — note that a shell alias does not help there, the application looks the name up itself and aliases do not exist outside the shell — then at `/snap/bin/gimp`, GIMP's Snap on Linux, keeping the first that reports GIMP 3 or later (`--version`): the `apt` package of Ubuntu 22.04 and 24.04, GIMP 2.10, is passed over, the batch scripts needing the Python-Fu of GIMP 3. Failing all of these, GIMP's Flatpak from Flathub, `org.gimp.GIMP`, is run through `flatpak run --command=gimp-console`. The Snap's `/tmp` being private to it, the files exchanged with a Snap's GIMP go into `~/snap/gimp/common` instead. `gimp-console` is preferred at every step: it carries no GUI, so it opens no window, flashes no Dock icon, and cannot fail for want of a display connection, which the full binary can even under `-i`. Set the override only to name an installation the search does not reach; an override that does not point at an executable file is reported as "not detected" rather than quietly falling back to the search
 - ffmpeg executable override for frame extraction from a video (`ffmpeg.executable_path`); leave unset, which is the default, to auto-detect. Detection looks up `ffmpeg` on `PATH`, and failing that in the usual install locations an application started from the macOS Finder does not have on its `PATH` — the active conda environment's own `bin/`, then `/opt/homebrew/bin`, `/usr/local/bin`, `/opt/local/bin`, `/usr/bin` and `/snap/bin`. As for GIMP, a shell alias does not help, and an override that does not point at an executable file is reported as "not detected". ffprobe is looked for next to the ffmpeg found, then on `PATH`
@@ -565,10 +591,10 @@ The bundle is also ad-hoc signed (`codesign -s -`), so its identity is stable: a
 Two independent numbers:
 
 - the **application** version, `__version__` in `volute/__init__.py` — the single source of truth, reported by `QApplication` and stamped into the macOS bundle, with its history in `CHANGELOG.md`;
-- the **`.volute` file format** version, `ProjectStateManager.PROJECT_VERSION` (currently `1.1`), written into every project file and checked on import against `SUPPORTED_VERSIONS`. It moves only when the schema changes, not with each release: `1.0` is the original format, `1.1` adds bounding boxes and optional imported masks. Both load without warning; anything else warns and then imports on a best-effort basis, since the reader ignores keys it does not know.
+- the **`.volute` file format** version, `ProjectStateManager.PROJECT_VERSION` (currently `1.2`), written into every project file and checked on import against `SUPPORTED_VERSIONS`. It moves only when the schema changes, not with each release: `1.0` is the original format, `1.1` adds bounding boxes and optional imported masks, `1.2` the frames predicted per object and the layout of the last propagation (segments and junction points), which the frame navigation uses, and the video the frames came from, which the video export starts from. All three load without warning; anything else warns and then imports on a best-effort basis, since the reader ignores keys it does not know.
 
 ### `.volute` — Project Data
-Gzip-compressed pickle containing object definitions (names, colors, markers), per-frame points and bounding boxes, reference point data, and tracked point trajectories (SAM2++ point mode). Predicted masks and centroids are **not** included; imported masks are, unless the person opts out at save time. Version `1.1`; files written as `1.0` (no boxes, no masks) still load. Compatible across machines with the same image dimensions.
+Gzip-compressed pickle containing object definitions (names, colors, markers), per-frame points and bounding boxes, reference point data, and tracked point trajectories (SAM2++ point mode). Predicted masks and centroids are **not** included; imported masks are, unless the person opts out at save time, and so are the frames predicted per object and the layout of the last propagation. Version `1.2`; files written as `1.0` (no boxes, no masks) or `1.1` (no predicted frames, no propagation layout) still load. Compatible across machines with the same image dimensions.
 
 ### `.voluteinf` — SAM2 Inference State
 Gzip-compressed serialization of the SAM2 internal inference state. Marked **experimental**: portability across different systems, devices, or model versions is not guaranteed.
@@ -666,7 +692,7 @@ If you use the SAM2++ backend, please also cite:
 | `reference_point_manager.py` | Reference point data model and interpolation |
 | `imported_point_manager.py` | Imported point data model (no interpolation; pixel coordinates) |
 | `image_manager.py` | Image loading and navigation |
-| `prediction_manager.py` | SAM2 prediction and propagation; point track prediction and propagation (interactive); bounded single-object re-propagation |
+| `prediction_manager.py` | SAM2 prediction and propagation, laid out in spans between annotated frames (`plan_object_spans`) and resumable after an interruption; point track prediction and propagation (interactive); bounded single-object re-propagation |
 | `sam2_backend.py` | SAM2 / MedSAM2 / SAM2++ model interface |
 | `export_manager.py` | Export orchestration |
 | `base_exporter.py` | Shared base class for all exporters |
@@ -687,9 +713,10 @@ If you use the SAM2++ backend, please also cite:
 | `gimp_export_manager.py` | GIMP CLI detection; frame/mask export for external editing (.xcf or plain files), single-frame or batched across all frames; `.xcf` mask layer extraction for import |
 | `model_dialog.py` | Model catalog and startup model chooser |
 | `settings_dialog.py` | Settings dialog over the YAML configuration |
-| `dialogs.py` | Standalone `QDialog` subclasses (`RepropagationSpanDialog`, `ColorObjectMappingDialog`, `GimpExportDialog`) and the localized message-box helpers |
-| `ffmpeg_manager.py` | ffmpeg/ffprobe detection, video probing, and frame extraction as a cancellable subprocess with progress (no Qt) |
-| `video_frames_ui.py` | Frame extraction dialog, and the controller running it behind a progress dialog and offering to load the result |
+| `dialogs.py` | Standalone `QDialog` subclasses (`RepropagationSpanDialog`, `JunctionModeDialog`, `SegmentJunctionDialog`, `ColorObjectMappingDialog`, `GimpExportDialog`) and the localized message-box helpers, among them the resume-or-start-over question of an interrupted propagation |
+| `ffmpeg_manager.py` | ffmpeg/ffprobe detection, video probing (audio included), frame extraction, and video encoding from piped frames, as cancellable subprocesses with progress (no Qt) |
+| `video_frames_ui.py` | Frame extraction dialog, and the controller running it behind a progress dialog, recording the source video beside the frames (`volute_source.json`) and offering to load the result |
+| `video_export.py` | Video export dialog, and the controller rendering the frames and encoding them behind a progress dialog |
 | `gimp_ui_controller.py` | UI-facing GIMP round-trip: export-for-editing dialogs, background-thread progress, plain-image and `.xcf` mask import |
 | `export_actions.py` | Menu-triggered export actions (masked images, coordinates, centroids, hull/contour coordinates, closest-point exports, tracked points, point/mask analysis) |
 | `property_controller.py` | Undo-backed property setters for object/point, tracked point display, reference point, and imported point properties |

@@ -23,6 +23,47 @@ class ImageExporter(BaseExporter):
     """Handles export of images with superimposed masks using original filenames"""
     
     
+    @staticmethod
+    def compose_masked_frame(image_path, idx, object_masks, object_colors, bg_opacity=1.0):
+        """The frame at image_path with the masks it carries superimposed,
+        each in its object's colour and opacity, over the background faded
+        to bg_opacity: what export_masked_images() and the video export
+        write. Returns a PIL RGB image."""
+        pil_image = Image.open(image_path).convert('RGB')
+
+        if bg_opacity < 1.0:
+            white = Image.new('RGB', pil_image.size, (255, 255, 255))
+            pil_image = Image.blend(white, pil_image, bg_opacity)
+
+        masked_image = np.array(pil_image, dtype=np.float32)
+
+        for obj_id, obj_masks in object_masks.items():
+            if idx not in obj_masks:
+                continue
+
+            mask = obj_masks[idx]
+            while len(mask.shape) > 2:
+                mask = mask.squeeze(0)
+
+            mask_color = object_colors[obj_id]['mask']
+            mask_color_rgb = np.array([
+                mask_color.red(),
+                mask_color.green(),
+                mask_color.blue()
+            ]) / 255.0
+            mask_opacity = mask_color.alphaF()
+
+            mask_bool = mask.astype(bool)
+            for c in range(3):
+                masked_image[:, :, c] = np.where(
+                    mask_bool,
+                    (1 - mask_opacity) * masked_image[:, :, c]
+                    + mask_opacity * mask_color_rgb[c] * 255,
+                    masked_image[:, :, c]
+                )
+
+        return Image.fromarray(masked_image.astype(np.uint8))
+
     def export_masked_images(self, image_paths, object_masks, object_colors,
                              export_folder, quality=95, bg_opacity=1.0):
         """
@@ -53,41 +94,8 @@ class ImageExporter(BaseExporter):
                 continue
     
             try:
-                pil_image = Image.open(image_path).convert('RGB')
-    
-                if bg_opacity < 1.0:
-                    white = Image.new('RGB', pil_image.size, (255, 255, 255))
-                    pil_image = Image.blend(white, pil_image, bg_opacity)
-    
-                image = np.array(pil_image, dtype=np.float32)
-                masked_image = image.copy()
-    
-                for obj_id, obj_masks in object_masks.items():
-                    if idx not in obj_masks:
-                        continue
-    
-                    mask = obj_masks[idx]
-                    while len(mask.shape) > 2:
-                        mask = mask.squeeze(0)
-    
-                    mask_color = object_colors[obj_id]['mask']
-                    mask_color_rgb = np.array([
-                        mask_color.red(),
-                        mask_color.green(),
-                        mask_color.blue()
-                    ]) / 255.0
-                    mask_opacity = mask_color.alphaF()
-    
-                    mask_bool = mask.astype(bool)
-                    for c in range(3):
-                        masked_image[:, :, c] = np.where(
-                            mask_bool,
-                            (1 - mask_opacity) * masked_image[:, :, c]
-                            + mask_opacity * mask_color_rgb[c] * 255,
-                            masked_image[:, :, c]
-                        )
-    
-                result_image = Image.fromarray(masked_image.astype(np.uint8))
+                result_image = self.compose_masked_frame(
+                    image_path, idx, object_masks, object_colors, bg_opacity)
                 export_filename = self.create_export_filename(idx, "masked", "jpg")
                 result_image.save(os.path.join(masked_folder, export_filename),
                                   'JPEG', quality=quality)
@@ -105,6 +113,57 @@ class ImageExporter(BaseExporter):
             print(f"Export completed: {count} images exported to {masked_folder}")
 
         return count
+
+    @staticmethod
+    def _draw_tracked_points(ax, frame_idx, object_tracked_points, object_colors,
+                             object_names, tracked_point_style, tracked_point_size):
+        """Draw on ax the markers of the points tracked on that frame, each
+        labelled with its object's name, as the canvas shows them."""
+        for obj_id, frames in sorted(object_tracked_points.items()):
+            if frame_idx not in frames:
+                continue
+            x_px, y_px = frames[frame_idx]
+            color = object_colors[obj_id]['mask']
+            ax.plot(x_px, y_px, marker=tracked_point_style,
+                    color=color.name(), markersize=tracked_point_size,
+                    markeredgewidth=1.5, markeredgecolor='white',
+                    linestyle='None', zorder=5)
+            ax.annotate(
+                object_names.get(obj_id, f"Object {obj_id}"),
+                (x_px, y_px), xytext=(6, 4),
+                textcoords='offset points',
+                color=color.name(), fontsize=9, fontweight='bold', zorder=6,
+            )
+
+    @classmethod
+    def compose_tracked_point_frame(cls, image_path, frame_idx, object_tracked_points,
+                                    object_colors, object_names,
+                                    tracked_point_style, tracked_point_size):
+        """The frame at image_path with its tracked points drawn as
+        export_images_with_tracked_points() draws them, at exactly the frame's
+        size, for the video export. Uses matplotlib's Agg canvas without
+        pyplot, so that it can run outside the GUI thread. Returns a PIL RGB
+        image."""
+        from matplotlib.figure import Figure
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
+
+        img = Image.open(image_path).convert('RGB')
+        w, h = img.size
+        fig = Figure(figsize=(w / 100, h / 100), dpi=100)
+        canvas = FigureCanvasAgg(fig)
+        ax = fig.add_axes([0, 0, 1, 1])
+        ax.imshow(img)
+        ax.set_xlim(-0.5, w - 0.5)
+        ax.set_ylim(h - 0.5, -0.5)
+        ax.axis('off')
+        cls._draw_tracked_points(ax, frame_idx, object_tracked_points, object_colors,
+                                 object_names, tracked_point_style, tracked_point_size)
+        canvas.draw()
+        rgba = np.asarray(canvas.buffer_rgba())
+        frame = Image.fromarray(rgba[:, :, :3].copy())
+        if frame.size != (w, h):
+            frame = frame.resize((w, h))
+        return frame
 
     def export_images_with_tracked_points(self, image_paths, object_tracked_points,
                                           object_colors, object_names,
@@ -137,21 +196,8 @@ class ImageExporter(BaseExporter):
                 fig.subplots_adjust(0, 0, 1, 1)
                 ax.imshow(img)
                 ax.axis('off')
-                for obj_id, frames in sorted(object_tracked_points.items()):
-                    if frame_idx not in frames:
-                        continue
-                    x_px, y_px = frames[frame_idx]
-                    color = object_colors[obj_id]['mask']
-                    ax.plot(x_px, y_px, marker=tracked_point_style,
-                            color=color.name(), markersize=tracked_point_size,
-                            markeredgewidth=1.5, markeredgecolor='white',
-                            linestyle='None', zorder=5)
-                    ax.annotate(
-                        object_names.get(obj_id, f"Object {obj_id}"),
-                        (x_px, y_px), xytext=(6, 4),
-                        textcoords='offset points',
-                        color=color.name(), fontsize=9, fontweight='bold', zorder=6,
-                    )
+                self._draw_tracked_points(ax, frame_idx, object_tracked_points, object_colors,
+                                          object_names, tracked_point_style, tracked_point_size)
                 fname = self.create_export_filename(frame_idx, "tracked", "jpg")
                 fig.savefig(os.path.join(out_dir, fname), dpi=100,
                             bbox_inches='tight', pad_inches=0,

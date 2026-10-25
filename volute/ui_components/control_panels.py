@@ -18,6 +18,15 @@ BOX_CLIPPING_MODE_ITEMS = [
     ('reference_box', 'box_clipping_mode_reference'),
 ]
 
+# What the prediction tab's navigation buttons step between, as (stored value,
+# translation key in mask mode, translation key in point mode) — shared with
+# UIManager, which relabels the combo on a language change.
+RESULT_NAV_ITEMS = [
+    ('results',   'result_nav_masks',            'result_nav_points'),
+    ('junctions', 'result_nav_junctions',        'result_nav_junctions'),
+    ('both',      'result_nav_masks_junctions',  'result_nav_points_junctions'),
+]
+
 
 class ControlPanels:
     """Creates points, prediction, and display option panels"""
@@ -82,6 +91,20 @@ class ControlPanels:
 
         return group
 
+    def create_annotation_navigation_panel(self):
+        """Previous/next frame carrying points or a box for the selected
+        objects, on the model of the reference points' defined-frame buttons."""
+        group = QGroupBox(self.localization.get_text("annotated_frames_nav"))
+        row = QHBoxLayout(group)
+        for name, key, forward in (('annotated_prev_btn', 'annotated_frame_prev_btn', False),
+                                   ('annotated_next_btn', 'annotated_frame_next_btn', True)):
+            self.controls[name] = QPushButton(self.localization.get_text(key))
+            self.controls[name].clicked.connect(
+                lambda _checked, f=forward: self.main_window.goto_annotated_frame(f))
+            self.controls[name].setEnabled(False)
+            row.addWidget(self.controls[name])
+        return group
+
     def create_prediction_panel(self):
         is_pt = self.main_window.is_point_mode()
         group = QGroupBox(self.localization.get_text("prediction"))
@@ -127,6 +150,29 @@ class ControlPanels:
                 self.main_window.update_box_clipping_mode)
             mode_row.addWidget(self.controls['box_clipping_mode_combo'])
             v.addLayout(mode_row)
+
+        # Navigation between predicted or imported results and junctions
+        nav_mode_row = QHBoxLayout()
+        nav_mode_row.addWidget(QLabel(self.localization.get_text("result_nav_label")))
+        self.controls['result_nav_combo'] = QComboBox()
+        for value, mask_key, point_key in RESULT_NAV_ITEMS:
+            self.controls['result_nav_combo'].addItem(
+                self.localization.get_text(point_key if is_pt else mask_key), value)
+        self.controls['result_nav_combo'].setEnabled(False)
+        self.controls['result_nav_combo'].currentIndexChanged.connect(
+            lambda _index: self.main_window._refresh_frame_navigation_state())
+        nav_mode_row.addWidget(self.controls['result_nav_combo'], 1)
+        v.addLayout(nav_mode_row)
+
+        nav_row = QHBoxLayout()
+        for name, key, forward in (('result_prev_btn', 'result_nav_prev_btn', False),
+                                   ('result_next_btn', 'result_nav_next_btn', True)):
+            self.controls[name] = QPushButton(self.localization.get_text(key))
+            self.controls[name].clicked.connect(
+                lambda _checked, f=forward: self.main_window.goto_result_frame(f))
+            self.controls[name].setEnabled(False)
+            nav_row.addWidget(self.controls[name])
+        v.addLayout(nav_row)
 
         return group
 

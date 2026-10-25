@@ -14,7 +14,7 @@ installed with.
 
 **Interface**
 
-<img src="images/en/settings-interface.webp" alt="The Interface tab of the settings" width="560">
+<img src="images/en/settings-interface.webp" alt="The Interface tab of the settings" width="563">
 
 - **Interface language**: the language VOLUTE starts in.
 - **Show the model list at startup** and **Default model**: the model selection window of
@@ -28,17 +28,21 @@ installed with.
 
 **Export**
 
-<img src="images/en/settings-export.webp" alt="The Export tab of the settings" width="560">
+<img src="images/en/settings-export.webp" alt="The Export tab of the settings" width="563">
 
 The format suggested for the mask coordinates and the centroids, and the quality of the
 JPEG images exported (step 8).
 
 **Performance and tools**
 
-<img src="images/en/settings-tools.webp" alt="The Performance and tools tab of the settings" width="560">
+<img src="images/en/settings-tools.webp" alt="The Performance and tools tab of the settings" width="563">
 
 - **Frames kept in memory**: on a long video, a lower number spares the computer's memory,
   at the cost of speed.
+- **Junction between annotated frames**: how propagation shares out the frames between
+  two annotated frames of the same object, and **Ask for the junction at each
+  propagation**: ask every time, or apply that choice without asking (see
+  [step 6](tracking.md#several-annotated-frames)).
 - **GIMP executable** and **ffmpeg executable**: left empty, VOLUTE finds GIMP (step 5)
   and ffmpeg (step 2) by itself. Fill them in only if it does not.
 
@@ -66,6 +70,7 @@ On a Mac, ⌘ replaces Ctrl, and ⇧ stands for Shift.
 | Ctrl + Shift + F | Export all frames for editing (GIMP) |
 | Ctrl + Shift + J | Import tracked points |
 | Ctrl + Shift + I | Export images with masks (or with tracked points) |
+| Ctrl + Shift + V | Export a video with masks (or with tracked points) |
 | Ctrl + Shift + M | Export mask coordinates |
 | Ctrl + Shift + T | Export centroids |
 | Ctrl + Shift + K | Export closest mask points (or closest tracked point distances) |

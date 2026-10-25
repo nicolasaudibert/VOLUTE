@@ -1,10 +1,12 @@
 """
 FFmpeg Manager
-Finds the ffmpeg and ffprobe executables, reads a video's properties, and
-extracts its frames as a numbered image sequence the application can load.
-Holds no Qt code: the UI side runs extract_frames() in a worker thread.
+Finds the ffmpeg and ffprobe executables, reads a video's properties,
+extracts its frames as a numbered image sequence the application can load,
+and encodes images back into a video. Holds no Qt code: the UI side runs
+extract_frames() and encode_video() in a worker thread.
 """
 
+import io
 import json
 import math
 import os
@@ -27,6 +29,95 @@ FRAME_FORMATS = {'jpg': 'jpg', 'png': 'png'}
 # range starting past the end of the video; the UI recognises it to show its
 # own explanation instead.
 NO_FRAMES_MESSAGE = "ffmpeg wrote no frame."
+
+# Video codecs offered for an exported video: the ffmpeg program that writes
+# each one and the options it is given, keyed by the name used in the export
+# dialog. ProRes is sized by its profile rather than by a bit rate.
+VIDEO_CODECS = {
+    'h264':   {'encoder': 'libx264', 'pix_fmt': 'yuv420p', 'bitrate': True},
+    'h265':   {'encoder': 'libx265', 'pix_fmt': 'yuv420p', 'bitrate': True,
+               'extra': ['-tag:v', 'hvc1']},
+    'prores': {'encoder': 'prores_ks', 'pix_fmt': 'yuv422p10le', 'bitrate': False,
+               'extra': ['-profile:v', '2']},
+}
+
+# Audio formats an exported video can be given: ffmpeg encoder, the codec
+# name ffprobe reports for it, and the default bit rate in kbit/s of the
+# lossy ones (None for the lossless ones)
+AUDIO_CODECS = {
+    'aac':   {'encoder': 'aac',        'codec': 'aac',       'bitrate': 192},
+    'mp3':   {'encoder': 'libmp3lame', 'codec': 'mp3',       'bitrate': 192},
+    'opus':  {'encoder': 'libopus',    'codec': 'opus',      'bitrate': 128},
+    'alac':  {'encoder': 'alac',       'codec': 'alac',      'bitrate': None},
+    'flac':  {'encoder': 'flac',       'codec': 'flac',      'bitrate': None},
+    'pcm16': {'encoder': 'pcm_s16le',  'codec': 'pcm_s16le', 'bitrate': None},
+    'pcm24': {'encoder': 'pcm_s24le',  'codec': 'pcm_s24le', 'bitrate': None},
+}
+
+# Containers offered, with the video encodings and audio formats each one
+# takes, and the audio codecs it can hold as they are, without re-encoding
+CONTAINERS = {
+    'mp4': {'codecs': ('h264', 'h265'), 'audio': ('aac', 'mp3', 'alac'),
+            'audio_copy': {'aac', 'mp3', 'ac3', 'eac3', 'alac'}},
+    'mov': {'codecs': ('h264', 'h265', 'prores'),
+            'audio': ('aac', 'mp3', 'alac', 'pcm16', 'pcm24'),
+            'audio_copy': {'aac', 'mp3', 'ac3', 'eac3', 'alac', 'pcm_s16le', 'pcm_s24le'}},
+    'mkv': {'codecs': ('h264', 'h265', 'prores'),
+            'audio': ('aac', 'mp3', 'opus', 'flac', 'pcm16', 'pcm24'),
+            'audio_copy': None},   # None: any
+}
+
+# Encoding and container matching a source video, from ffprobe's codec name
+# and the file's extension
+SOURCE_CODECS = {'h264': 'h264', 'hevc': 'h265', 'prores': 'prores'}
+SOURCE_CONTAINERS = {'.mp4': 'mp4', '.m4v': 'mp4', '.mov': 'mov', '.mkv': 'mkv'}
+
+
+def default_encoding(source_path, info):
+    """(container, codec) matching the source video when it has one this
+    export can write, H.264 in MP4 otherwise."""
+    container = SOURCE_CONTAINERS.get(os.path.splitext(source_path or '')[1].lower(), 'mp4')
+    codec = SOURCE_CODECS.get((info or {}).get('codec'), 'h264')
+    if codec not in CONTAINERS[container]['codecs']:
+        container = 'mov'
+    return container, codec
+
+
+def default_bitrate_kbps(info, width, height, fps):
+    """Video bit rate of the source in kbit/s; when unknown, 0.1 bit per pixel
+    and frame, about what H.264 needs for a clean result."""
+    bitrate = (info or {}).get('bit_rate')
+    if bitrate:
+        return max(1, int(round(bitrate / 1000)))
+    return max(100, int(round(width * height * (fps or 25) * 0.1 / 1000)))
+
+
+# ffmpeg's name of each container, for the output format given explicitly:
+# the file being written carries a temporary name ffmpeg cannot read it from
+CONTAINER_FORMATS = {'mp4': 'mp4', 'mov': 'mov', 'mkv': 'matroska'}
+
+
+def default_audio_codec(container, video_codec):
+    """Audio format an export re-encodes to when it cannot copy the audio:
+    24-bit PCM beside ProRes in MOV, as editing software expects, FLAC in
+    MKV, AAC otherwise."""
+    if container == 'mov' and video_codec == 'prores':
+        return 'pcm24'
+    return 'flac' if container == 'mkv' else 'aac'
+
+
+def resolve_audio_codec(choice, container, video_codec, source_audio_codec, can_copy=True):
+    """The audio format to write, 'copy' included: choice itself, unless it
+    is 'auto', which copies the audio when the container holds its codec and
+    nothing has to change it (can_copy), and falls back to
+    default_audio_codec() otherwise."""
+    if choice != 'auto':
+        return choice
+    allowed = CONTAINERS[container]['audio_copy']
+    if can_copy and source_audio_codec and (allowed is None or source_audio_codec in allowed):
+        return 'copy'
+    return default_audio_codec(container, video_codec)
+
 
 # Smallest zero-padding width of frame numbers. Frame 0 is then always
 # named <stem>_00000, which FileManager.get_image_files() takes as the
@@ -105,12 +196,19 @@ class FFmpegManager:
     # Lines of ffmpeg's error output kept for the failure message.
     ERROR_TAIL_LINES = 20
 
+    # Prefix of the file an exported video is written to, beside its final
+    # name, until ffmpeg has finished: a failed or cancelled export then
+    # leaves no partial file, and does not touch a video it would replace
+    ENCODING_PREFIX = '.volute_encoding_'
+
     def __init__(self, main_window, debug_mode=False):
         self.main_window = main_window
         self.debug_mode = debug_mode
         self._ffmpeg_executable = None
         self._ffprobe_executable = None
         self._detected = False
+        # Keys of AUDIO_CODECS this ffmpeg can write, once asked
+        self._audio_encoders = None
 
     # ------------------------------------------------------------------
     # Executable detection
@@ -172,18 +270,21 @@ class FFmpegManager:
     def probe_video(self, video_path, timeout=30):
         """
         Read the first video stream's properties with ffprobe. Returns a
-        dict with 'duration' (seconds), 'fps', 'frame_count', 'width' and
-        'height', any of them None when the container does not say; returns
-        None when no ffprobe is available. Raises RuntimeError when the file
+        dict with 'duration' (seconds), 'fps', 'frame_count', 'width',
+        'height', 'codec' (ffprobe's name) and 'bit_rate' (bit/s), any of them
+        None when the container does not say, and 'audio', the first audio
+        stream's 'codec', 'sample_rate' and 'channels', or None without one;
+        returns None when no ffprobe is available. Raises RuntimeError when the file
         cannot be read or holds no video stream.
         """
         ffprobe = self.detect_ffprobe_executable()
         if not ffprobe:
             return None
 
-        cmd = [ffprobe, '-v', 'error', '-select_streams', 'v:0',
+        cmd = [ffprobe, '-v', 'error',
                '-show_entries',
-               'stream=width,height,avg_frame_rate,r_frame_rate,nb_frames,duration'
+               'stream=codec_type,codec_name,width,height,avg_frame_rate,r_frame_rate,'
+               'nb_frames,duration,bit_rate,sample_rate,channels'
                ':format=duration',
                '-of', 'json', video_path]
         try:
@@ -201,9 +302,11 @@ class FFmpegManager:
         except ValueError as e:
             raise RuntimeError(f"Unreadable ffprobe output: {e}") from e
         streams = data.get('streams') or []
-        if not streams:
+        videos = [s for s in streams if s.get('codec_type') == 'video']
+        if not videos:
             raise RuntimeError("No video stream found.")
-        stream = streams[0]
+        stream = videos[0]
+        audios = [s for s in streams if s.get('codec_type') == 'audio']
 
         duration = (_parse_float(stream.get('duration'))
                     or _parse_float((data.get('format') or {}).get('duration')))
@@ -216,12 +319,20 @@ class FFmpegManager:
         if frame_count is None and duration and fps:
             frame_count = int(round(duration * fps))
 
+        audio = None
+        if audios:
+            audio = {'codec': audios[0].get('codec_name'),
+                     'sample_rate': _parse_float(audios[0].get('sample_rate')),
+                     'channels': audios[0].get('channels')}
         return {
             'duration': duration,
             'fps': fps,
             'frame_count': frame_count,
             'width': stream.get('width'),
             'height': stream.get('height'),
+            'codec': stream.get('codec_name'),
+            'bit_rate': _parse_float(stream.get('bit_rate')),
+            'audio': audio,
         }
 
     @staticmethod
@@ -459,3 +570,204 @@ class FFmpegManager:
         shutil.rmtree(staging, ignore_errors=True)
         report(count, count)
         return STATUS_OK, "", count
+
+    # ------------------------------------------------------------------
+    # Video encoding
+    # ------------------------------------------------------------------
+
+    def available_audio_encoders(self):
+        """Keys of AUDIO_CODECS this ffmpeg can write: a build can lack the
+        MP3 or the Opus one. Asked once, then kept."""
+        if self._audio_encoders is None:
+            names = set()
+            ffmpeg = self.detect_ffmpeg_executable()
+            if ffmpeg:
+                try:
+                    result = subprocess.run(
+                        [ffmpeg, '-hide_banner', '-encoders'], capture_output=True, text=True,
+                        timeout=30, stdin=subprocess.DEVNULL,
+                        creationflags=self._creation_flags())
+                    for line in result.stdout.splitlines():
+                        parts = line.split()
+                        if len(parts) >= 2 and parts[0].startswith('A'):
+                            names.add(parts[1])
+                except (OSError, subprocess.SubprocessError):
+                    pass
+            self._audio_encoders = {key for key, spec in AUDIO_CODECS.items()
+                                    if spec['encoder'] in names}
+        return self._audio_encoders
+
+    def probe_audio(self, path, timeout=30):
+        """Read the first audio stream of a file — an audio file, or a video
+        with sound — with ffprobe. Returns a dict with 'duration' (seconds),
+        'codec', 'sample_rate' and 'channels', any of them None when the file
+        does not say; returns None when no ffprobe is available. Raises
+        RuntimeError when the file cannot be read or holds no audio."""
+        ffprobe = self.detect_ffprobe_executable()
+        if not ffprobe:
+            return None
+        cmd = [ffprobe, '-v', 'error', '-select_streams', 'a:0', '-show_entries',
+               'stream=codec_name,sample_rate,channels,duration:format=duration',
+               '-of', 'json', path]
+        try:
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=timeout,
+                stdin=subprocess.DEVNULL, creationflags=self._creation_flags(),
+            )
+        except (OSError, subprocess.SubprocessError) as e:
+            raise RuntimeError(str(e)) from e
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip() or "ffprobe failed.")
+        try:
+            data = json.loads(result.stdout or '{}')
+        except ValueError as e:
+            raise RuntimeError(f"Unreadable ffprobe output: {e}") from e
+        streams = data.get('streams') or []
+        if not streams:
+            raise RuntimeError("No audio stream found.")
+        stream = streams[0]
+        return {
+            'duration': (_parse_float(stream.get('duration'))
+                         or _parse_float((data.get('format') or {}).get('duration'))),
+            'codec': stream.get('codec_name'),
+            'sample_rate': _parse_float(stream.get('sample_rate')),
+            'channels': stream.get('channels'),
+        }
+
+    def build_encoding_command(self, output_path, container, width, height, fps,
+                               codec='h264', bitrate_kbps=None, audio=None):
+        """ffmpeg command line encoding raw RGB frames read from its standard
+        input into output_path, with an audio track when audio is given: a
+        dict with
+          'path'         the file whose first audio stream is taken,
+          'skip'         seconds skipped at its start,
+          'duration'     seconds read from there, or None for all of it,
+          'loop'         repeat it,
+          'delay'        seconds of silence before it starts,
+          'pad_to'       seconds the track is padded with silence and cut to,
+                         or None,
+          'codec'        'copy', or a key of AUDIO_CODECS,
+          'bitrate_kbps' for the lossy formats,
+          'sample_rate'  Hz to resample to, or None.
+        Delay and padding go through audio filters, which 'copy' excludes."""
+        spec = VIDEO_CODECS[codec]
+        cmd = [self.detect_ffmpeg_executable(), '-hide_banner', '-v', 'error', '-y',
+               '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', f'{width}x{height}',
+               '-framerate', f'{fps:g}', '-i', 'pipe:0']
+        if audio:
+            if audio.get('loop'):
+                cmd += ['-stream_loop', '-1']
+            if audio.get('skip'):
+                cmd += ['-ss', f"{audio['skip']:.3f}"]
+            if audio.get('duration'):
+                cmd += ['-t', f"{audio['duration']:.3f}"]
+            cmd += ['-i', audio['path']]
+        cmd += ['-map', '0:v:0']
+        if audio:
+            cmd += ['-map', '1:a:0?']
+        if spec['pix_fmt'] == 'yuv420p':
+            # 4:2:0 chroma needs even dimensions
+            cmd += ['-vf', 'pad=ceil(iw/2)*2:ceil(ih/2)*2']
+        cmd += ['-c:v', spec['encoder'], '-pix_fmt', spec['pix_fmt']]
+        if spec['bitrate'] and bitrate_kbps:
+            cmd += ['-b:v', f'{int(bitrate_kbps)}k']
+        cmd += spec.get('extra', [])
+        if audio:
+            filters = []
+            if audio.get('delay'):
+                filters.append(f"adelay={int(round(audio['delay'] * 1000))}:all=1")
+            if audio.get('pad_to'):
+                filters += ['apad', f"atrim=0:{audio['pad_to']:.3f}"]
+            if filters:
+                cmd += ['-af', ','.join(filters)]
+            if audio['codec'] == 'copy':
+                cmd += ['-c:a', 'copy']
+            else:
+                audio_spec = AUDIO_CODECS[audio['codec']]
+                cmd += ['-c:a', audio_spec['encoder']]
+                if audio_spec['bitrate'] and audio.get('bitrate_kbps'):
+                    cmd += ['-b:a', f"{int(audio['bitrate_kbps'])}k"]
+                if audio.get('sample_rate'):
+                    cmd += ['-ar', str(int(audio['sample_rate']))]
+        if container in ('mp4', 'mov'):
+            cmd += ['-movflags', '+faststart']
+        cmd += ['-f', CONTAINER_FORMATS[container], output_path]
+        return cmd
+
+    def encode_video(self, frames, frame_count, output_path, container, width, height,
+                     fps, codec='h264', bitrate_kbps=None, audio=None,
+                     report=None, is_cancelled=None):
+        """
+        Encode frames, an iterable of height×width×3 uint8 RGB arrays, into
+        output_path, with the audio track build_encoding_command() describes
+        when audio is given.
+
+        The video is written beside output_path under a temporary name and
+        moved into place once ffmpeg has succeeded. report(done, total) is
+        called after each frame, total being frame_count; is_cancelled() is
+        polled between frames. Returns (status, message, frames_written),
+        message holding ffmpeg's error output on failure.
+        """
+        if self.detect_ffmpeg_executable() is None:
+            return STATUS_ERROR, "ffmpeg executable not found.", 0
+        report = report or (lambda done, total: None)
+        is_cancelled = is_cancelled or (lambda: False)
+        partial = os.path.join(os.path.dirname(output_path) or '.',
+                               self.ENCODING_PREFIX + os.path.basename(output_path))
+        cmd = self.build_encoding_command(
+            partial, container, width, height, fps, codec=codec,
+            bitrate_kbps=bitrate_kbps, audio=audio)
+        if self.debug_mode:
+            print(f"[ffmpeg] {subprocess.list2cmdline(cmd)}")
+        try:
+            proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.PIPE,
+                                    creationflags=self._creation_flags())
+        except OSError as e:
+            return STATUS_ERROR, str(e), 0
+
+        error_lines = []
+        reader = threading.Thread(
+            target=self._read_errors,
+            args=(io.TextIOWrapper(proc.stderr, errors='replace'), error_lines,
+                  self.ERROR_TAIL_LINES),
+            daemon=True)
+        reader.start()
+
+        def discard():
+            try:
+                os.remove(partial)
+            except OSError:
+                pass
+
+        written = 0
+        cancelled = False
+        try:
+            for frame in frames:
+                if is_cancelled():
+                    cancelled = True
+                    break
+                proc.stdin.write(frame.tobytes())
+                written += 1
+                report(written, frame_count)
+            proc.stdin.close()
+        except (BrokenPipeError, OSError):
+            # ffmpeg stopped reading: its error output says why
+            pass
+        if cancelled:
+            self._terminate_process(proc)
+            reader.join(timeout=self.TERMINATE_GRACE)
+            discard()
+            return STATUS_CANCELLED, "", written
+        proc.wait()
+        reader.join(timeout=self.TERMINATE_GRACE)
+        if proc.returncode != 0:
+            discard()
+            message = "\n".join(error_lines).strip()
+            return STATUS_ERROR, message or f"ffmpeg exited with code {proc.returncode}.", written
+        try:
+            os.replace(partial, output_path)
+        except OSError as e:
+            discard()
+            return STATUS_ERROR, str(e), written
+        return STATUS_OK, "", written

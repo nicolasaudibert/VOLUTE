@@ -31,7 +31,7 @@ across video frames, but nothing in it is specific to that field.
 - **Correction workflow**: refine any already-tracked frame, then re-propagate that object alone over a bounded span
 - **GIMP round-trip**: export a frame (or all frames) for external editing as `.xcf` or plain images, and import the edited masks back
 - **Reference points and imported point trajectories**, with interpolation, plus distance and containment analyses against the tracked masks
-- **Exports**: masked images, mask coordinates, centroids, convex hulls, outer contours, closest-point distances — in JPEG, JSON, CSV, XLSX or Pickle
+- **Exports**: masked images, a video of them with the original's audio track, mask coordinates, centroids, convex hulls, outer contours, closest-point distances — in JPEG, MP4/MOV/MKV, JSON, CSV, XLSX or Pickle
 - **Batch processing** of many (project, image folder) pairs without user interaction
 - **Undo/redo** across points, boxes, object edits and display properties
 - **Bilingual UI** (English / French), switchable at runtime, with every setting editable from a settings dialog. A further language takes no code change: drop a TSV file into `volute/translations/` and it appears in the Language menu — see the [translation guide](volute/translations/translation_readme.md)
@@ -119,7 +119,9 @@ A first pass over a sequence, from an empty window to exported masks:
 5. **Segment the frame.** **Predict masks on current image**. Adjust by adding points and
    predicting again until the mask is right.
 6. **Follow it through the sequence.** **Propagate masks through video** tracks the object
-   forwards from this frame, then backwards if it is not the first.
+   forwards from this frame, then backwards if it is not the first. An object annotated on
+   several frames is propagated from each of them, meeting halfway by default; an
+   interrupted propagation can be resumed where it stopped.
 7. **Correct where needed.** Move to a frame the tracking got wrong, add points there, predict,
    then re-propagate that object alone from that frame.
 8. **Export.** Masked images (`Ctrl+Shift+I`), or coordinates, centroids, hulls and contours
